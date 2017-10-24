@@ -68,6 +68,7 @@ public class NewickTree {
 				child.setParent(node);
 			}
 
+			node.setId(nodeList.size()+1);
 			nodeList.add(node);
 			return node;
 		} else if (leftParen == rightParen) {
@@ -75,6 +76,7 @@ public class NewickTree {
 			String name = s.substring(0, colon);
 			double length = Double.parseDouble(s.substring(colon+1));
 			Node node = new Node(name , length);
+			node.setId(nodeList.size()+1);
 			nodeList.add(node);
 			return node;
 
