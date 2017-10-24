@@ -1,19 +1,23 @@
 package datastructures;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 /**
- * Node enth�lt Informationen zu einem Knoten im Baum.
- * Er beinhaltet den Namen des Knotens, die Kantenl�nge zum Elternknoten, den Elternknoten und die Knoten der Kinder.
+ * Node enthaelt Informationen zu einem Knoten im Baum.
+ * Er beinhaltet den Namen des Knotens, die Kantenlaenge zum Elternknoten, den Elternknoten und die Knoten der Kinder.
  * 
  * @author Katrin Fischer
  *
  */
 public class Node {
 	
-	private String label;
+	private int id;
+	private Map<Integer,Set<String>> label = new HashMap<Integer, Set<String>>();
 	private String name;
 	private double length;
 	private Node parent;
@@ -30,7 +34,8 @@ public class Node {
 		length = branchlength;
 	}
 	
-	
+
+
 	/**
 	 * Gibt einen String zur�ck, mit dem Knoten und dessen Kindern im Newickformat
 	 * @return String im Newickformat
@@ -64,7 +69,7 @@ public class Node {
 	 * @see java.lang.Object#toString()
 	 */
 	public String toString(){
-		return (name + ":" + String.format( "%.8f", length ));
+		return (name + ":" + String.format( "%.8f", length ) + "-" + id);
 	}
 
 	public List<Node> getChildren() {
@@ -85,7 +90,7 @@ public class Node {
 
 	
 	/**
-	 * F�gt der Liste der Kindknoten einen Knoten hinzu
+	 * Fuegt der Liste der Kindknoten einen Knoten hinzu
 	 * @param child der neue Kindknoten
 	 */
 	public void addChild(Node child) {
@@ -99,6 +104,27 @@ public class Node {
 	 */
 	public void setParent(Node parent) {
 		this.parent = parent;
+	}
+	
+
+	
+	public int getId() {
+		return id;
+	}
+
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+
+	public Map<Integer, Set<String>> getLabel() {
+		return label;
+	}
+
+
+	public void setLabel(Map<Integer, Set<String>> label) {
+		this.label = label;
 	}
 
 }
