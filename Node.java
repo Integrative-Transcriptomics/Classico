@@ -2,6 +2,7 @@ package datastructures;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,9 +26,9 @@ public class Node {
 
 	
 	/**
-	 * Konstruktor f�r einen Knoten
+	 * Konstruktor fuer einen Knoten
 	 * @param nodename Name des Knotens
-	 * @param branchlength Kantenl�nge zum Elternknoten
+	 * @param branchlength Kantenlaenge zum Elternknoten
 	 */
 	public Node(String nodename, double branchlength) {
 		name = nodename;
@@ -37,14 +38,14 @@ public class Node {
 
 
 	/**
-	 * Gibt einen String zur�ck, mit dem Knoten und dessen Kindern im Newickformat
+	 * Gibt einen String zurueck, mit dem Knoten und dessen Kindern im Newickformat
 	 * @return String im Newickformat
 	 */
 	public String toNewickString() {
-		//Stellt die L�nge in Englischer Schreibweise dar
+		//Stellt die Laenge in Englischer Schreibweise dar
 		Locale.setDefault(Locale.ENGLISH);
 		String childrenToString = "";
-		// Kindknoten in Newickformat hinzuf�gen, falls vorhanden
+		// Kindknoten in Newickformat hinzufuegen, falls vorhanden
 		if (!children.isEmpty()) {
 			for (Node i : children) {
 				//Kinder werden durch Komma getrennt
@@ -69,7 +70,7 @@ public class Node {
 	 * @see java.lang.Object#toString()
 	 */
 	public String toString(){
-		return (name + ":" + String.format( "%.8f", length ) + "-" + id);
+		return (name + ":" + String.format( "%.8f", length ) + "-" + id + label.toString());
 	}
 
 	public List<Node> getChildren() {
@@ -125,6 +126,19 @@ public class Node {
 
 	public void setLabel(Map<Integer, Set<String>> label) {
 		this.label = label;
+	}
+	
+	public void setLabel(int pos, String snp) {
+		if(label.containsKey(pos)) {
+			label.get(pos).add(snp);
+		}else {
+			Set<String> set = new HashSet<String>();
+			set.add(snp);
+			label.put(pos, set);
+		}
+		if(parent != null) {
+			parent.setLabel(pos, snp);
+		}
 	}
 
 }
