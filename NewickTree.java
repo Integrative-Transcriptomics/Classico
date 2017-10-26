@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Datenstruktur eines Newick-Trees
@@ -15,7 +16,7 @@ public class NewickTree {
 	private String inputFile;
 
 	private Node root;
-	private ArrayList<Node> nodeList = new ArrayList<Node>();
+	private List<Node> nodeList = new ArrayList<Node>();
 
 	/**
 	 * Konstruktor eines NewickTrees anhand einer Newick-Datei
@@ -60,8 +61,8 @@ public class NewickTree {
 				name = s.substring(rightParen + 1);
 			}
 			String[] childrenString = split(s.substring(leftParen + 1, rightParen));
-
-			Node node = new Node(name , length);
+			
+			Node node = new Node(formatName(name) , length);
 			for (String sub : childrenString) {
 				Node child = readSubtree(sub);
 				node.addChild(child);
@@ -75,7 +76,7 @@ public class NewickTree {
 			
 			String name = s.substring(0, colon);
 			double length = Double.parseDouble(s.substring(colon+1));
-			Node node = new Node(name , length);
+			Node node = new Node(formatName(name) , length);
 			node.setId(nodeList.size()+1);
 			nodeList.add(node);
 			return node;
@@ -135,8 +136,38 @@ public class NewickTree {
 		}
 	}
 
-	public ArrayList<Node> getNodeList() {
+	public List<Node> getNodeList() {
 		return nodeList;
 	}
+	
+	public void label(SNPTable snp) {
+		for (Integer pos : snp.getSNPs()) {
+			for (String sample : snp.getSampleNames()) {
+				String nuc = snp.getSnp(pos, sample);
+				String ref = snp.getReferenceSnp(pos);
+				if(nuc.equals(".")) {
+					nuc = ref;
+				}
+				for(Node current : nodeList) {
+					if(current.getName().equals(sample)) {
+						current.setLabel(pos, nuc);
+						break;
+					}
+				}
+			}
+		}
+	}
+	
+	public String formatName(String name) {
+		StringBuilder sb = new StringBuilder(name);
+		int index = sb.indexOf("_");
+		while(index != -1) {
+			sb.replace(index, index+1, " ");
+			index = sb.indexOf("_");
+		}
+		return sb.toString();
+	}
+	
+	
 
 }
