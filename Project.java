@@ -17,6 +17,7 @@ public class Project {
 	private SNPTable snp;
 	private NewickTree tree;
 	private Map<Integer, List<Node>> claden = new HashMap<Integer, List<Node>>();
+	private Map<Integer, List<Integer>> splitKeys = new HashMap<Integer, List<Integer>>();
 	private Set<Integer> rootKeys;
 
 	public Project(String snpFile, String newickTreeFile) {
@@ -32,32 +33,35 @@ public class Project {
 		this.tree.label(snp);
 		rootKeys = this.tree.getRoot().getLabel().keySet();
 	}
-	
-	public static void main(String[] args0) throws IOException{
-		if(args0.length == 3) {
-			Project comcla = new Project(args0[0],args0[1]);
+
+	public static void main(String[] args0) throws IOException {
+		if (args0.length == 3) {
+			Project comcla = new Project(args0[0], args0[1]);
 			Set<Integer> keys = comcla.getRootKeys();
-			for(int i : keys) {
+			for (int i : keys) {
 				comcla.computeCladen(comcla.tree.getRoot(), i);
 			}
-		System.out.println(comcla.tree);
-		for(Node i : comcla.tree.getNodeList()){
-			System.out.println(i.toString());
-		}
-		//System.out.println(lepraSNPs);
-		comcla.tree.label(comcla.snp);
-		FileWriter fw = new FileWriter(args0[2]);
-		BufferedWriter bw = new BufferedWriter(fw);
-		for(Node i : comcla.tree.getNodeList()) {
-			if(i.getLabel().containsKey(73)) {
-				System.out.println(i.getId());
-				System.out.println(i.getLabel().get(73).toString());
+			System.out.println(comcla.tree);
+			for (Node i : comcla.tree.getNodeList()) {
+				System.out.println(i.toString());
 			}
-		}
-		bw.close();
-		System.out.println("ready");
-		}else {
-			System.err.println("Geben Sie als ersten Dateipfad die SNP-Tabelle an und als zweite eine Newick-Datei");
+			// System.out.println(lepraSNPs);
+			comcla.tree.label(comcla.snp);
+			FileWriter fw = new FileWriter(args0[2]);
+			BufferedWriter bw = new BufferedWriter(fw);
+			for (Node i : comcla.tree.getNodeList()) {
+				if (i.getLabel().containsKey(73)) {
+					System.out.println(i.getId() + " - ");
+					bw.write(i.getId());
+					System.out.println(i.getLabel().get(73).toString());
+					bw.write(i.getLabel().get(73).toString());
+				}
+			}
+			bw.close();
+			System.out.println("ready");
+		} else {
+			System.err.println(
+					"Geben Sie als ersten Dateipfad die SNP-Tabelle, als zweite eine Newick-Datei und als dritte eine leere Datei an");
 		}
 	}
 
@@ -92,6 +96,23 @@ public class Project {
 			}
 		} else {
 			System.out.println("Key im Knoten nicht gefunden");
+		}
+	}
+
+	public void evaluateCladen() {
+		
+	}
+
+	public void undefNuc() {
+		
+	}
+
+	public void splitKeys() {
+		for(int key : rootKeys) {
+			List<Node> nodes = claden.get(key);
+			for(Node i : nodes) {
+				
+			}
 		}
 	}
 
