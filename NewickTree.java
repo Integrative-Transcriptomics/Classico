@@ -158,6 +158,10 @@ public class NewickTree {
 		}
 	}
 	
+	public Node getRoot() {
+		return root;
+	}
+
 	public String formatName(String name) {
 		StringBuilder sb = new StringBuilder(name);
 		int index = sb.indexOf("_");
