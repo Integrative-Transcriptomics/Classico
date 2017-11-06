@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,48 +17,30 @@ import datastructures.SNPTable;
 public class Project {
 	private SNPTable snp;
 	private NewickTree tree;
-	private Map<Integer, List<Node>> claden = new HashMap<Integer, List<Node>>();
+	private Map<Integer, HashMap<String, List<Node>>> claden = new HashMap<Integer, HashMap<String, List<Node>>>();
 	private Map<Integer, List<Integer>> splitKeys = new HashMap<Integer, List<Integer>>();
-	private Set<Integer> rootKeys;
 
 	public Project(String snpFile, String newickTreeFile) {
 		snp = new SNPTable(snpFile);
 		tree = new NewickTree(newickTreeFile);
-		this.tree.label(snp);
-		rootKeys = tree.getRoot().getLabel().keySet();
 	}
 
 	public Project(SNPTable snp, NewickTree tree) {
 		this.snp = snp;
 		this.tree = tree;
-		this.tree.label(snp);
-		rootKeys = this.tree.getRoot().getLabel().keySet();
 	}
 
 	public static void main(String[] args0) throws IOException {
 		if (args0.length == 3) {
 			Project comcla = new Project(args0[0], args0[1]);
-			Set<Integer> keys = comcla.getRootKeys();
-			for (int i : keys) {
-				comcla.computeCladen(comcla.tree.getRoot(), i);
+			for (Integer pos : comcla.snp.getSNPs()) {
+				comcla.label(comcla.tree, pos);
+				comcla.computeCladen(comcla.tree.getRoot(), pos, true);
 			}
+
 			System.out.println(comcla.tree);
-			for (Node i : comcla.tree.getNodeList()) {
-				System.out.println(i.toString());
-			}
-			// System.out.println(lepraSNPs);
-			comcla.tree.label(comcla.snp);
-			FileWriter fw = new FileWriter(args0[2]);
-			BufferedWriter bw = new BufferedWriter(fw);
-			for (Node i : comcla.tree.getNodeList()) {
-				if (i.getLabel().containsKey(73)) {
-					System.out.println(i.getId() + " - ");
-					bw.write(i.getId());
-					System.out.println(i.getLabel().get(73).toString());
-					bw.write(i.getLabel().get(73).toString());
-				}
-			}
-			bw.close();
+			comcla.toFile(args0[2]);
+
 			System.out.println("ready");
 		} else {
 			System.err.println(
@@ -65,7 +48,7 @@ public class Project {
 		}
 	}
 
-	public void computeCladen(Node node, int key) {
+	public void computeCladen(Node node, int key, boolean withoutN) {
 
 		if (node.getLabel().containsKey(key)) {
 			Set<String> base = node.getLabel().get(key);
@@ -74,19 +57,19 @@ public class Project {
 				System.out.println("Key enthalten aber keine Strings");
 				break;
 			case 1:
-				if (claden.containsKey(key)) {
-					claden.get(key).add(node);
-				} else {
-					List<Node> split = new ArrayList<Node>();
-					split.add(node);
-					claden.put(key, split);
-				}
+				setClade(key, node, base.toString());
 				break;
+			case 2:
+				if (withoutN && node.getLabel().get(key).contains("N")) {
+					base.remove("N");
+					setClade(key, node, base.toString());
+					break;
+				}
 			default:
 				if (!node.getChildren().isEmpty()) {
 					for (Node i : node.getChildren()) {
 						// Durchsuche Kinder nach Claden
-						computeCladen(i, key);
+						computeCladen(i, key, withoutN);
 					}
 				} else {
 					// Knoten hat keine Kinder aber zwei Basen (Darf nicht passieren)
@@ -100,24 +83,83 @@ public class Project {
 	}
 
 	public void evaluateCladen() {
-		
+
 	}
 
 	public void undefNuc() {
-		
+
 	}
 
-	public void splitKeys() {
-		for(int key : rootKeys) {
-			List<Node> nodes = claden.get(key);
-			for(Node i : nodes) {
-				
+	/*
+	 * public void splitKeys() { for(int key : rootKeys) { List<Node> nodes =
+	 * claden.get(key); for(Node i : nodes) {
+	 * 
+	 * } } }
+	 */
+
+	public void label(NewickTree tree, Integer key) {
+		for (String sample : snp.getSampleNames()) {
+			String nuc = snp.getSnp(key, sample);
+			String ref = snp.getReferenceSnp(key);
+			if (nuc.equals(".")) {
+				nuc = ref;
 			}
+			for (Node current : tree.getNodeList()) {
+				if (current.getName().equals(sample)) {
+					current.setLabel(key, nuc);
+					break;
+				}
+			}
+		}
+
+	}
+
+	public void setClade(int key, Node node, String label) {
+		if (claden.containsKey(key)) {
+			if (claden.get(key).containsKey(label)) {
+				claden.get(key).get(label).add(node);
+			} else {
+				List<Node> split = new ArrayList<Node>();
+				split.add(node);
+				claden.get(key).put(label, split);
+			}
+
+		} else {
+			HashMap<String, List<Node>> labeledNode = new HashMap<String, List<Node>>();
+			List<Node> split = new ArrayList<Node>();
+			split.add(node);
+			labeledNode.put(label, split);
+			claden.put(key, labeledNode);
 		}
 	}
 
-	public Set<Integer> getRootKeys() {
-		return rootKeys;
+	public void toFile(String filename) {
+		FileWriter fw;
+		try {
+			fw = new FileWriter(filename);
+			BufferedWriter bw = new BufferedWriter(fw);
+			for (int i : claden.keySet()) {
+				System.out.println(i + ":");
+				bw.write(i + ":\n");
+				for (String l : claden.get(i).keySet()) {
+					System.out.println(l + ":");
+					bw.write(l + ":\n");
+					for (Node n : claden.get(i).get(l)) {
+						System.out.println(
+								n.getId() + "-" + n.getName() + "-" + n.getLabel().get(i) + ":" + n.toNewickString());
+						bw.write(n.getId() + "-" + n.getName() + "-" + n.getLabel().get(i) + ":" + n.toNewickString()
+								+ "\n");
+					}
+				}
+				System.out.println();
+				bw.write("\n");
+			}
+			bw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 	}
 
 }
