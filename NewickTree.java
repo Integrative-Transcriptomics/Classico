@@ -26,18 +26,21 @@ public class NewickTree {
 		this.inputFile = inputFile;
 		readNewickTree();
 	}
-
+	/**
+	 * Liest eine Newick-Datei ein
+	 */
 	private void readNewickTree() {
 		try {
 			@SuppressWarnings("resource")
 			BufferedReader br = new BufferedReader(new FileReader(this.inputFile));
 			String line = "";
 			String newickString = "";
+			//speichert komplette Newick-Datei in einem String
 			while ((line = br.readLine()) != null) {
 				newickString += line;
 			}
 			System.out.println(newickString);
-
+			// entfernt das Semicolon und ruft readSubtree auf
 			this.root = readSubtree(newickString.substring(0, newickString.length() - 1));
 
 		} catch (IOException e) {
@@ -55,11 +58,14 @@ public class NewickTree {
 			String name;
 			double length = 0;
 			if(colon!= -1 && colon > rightParen){
+				// tree with branchlength
 				name = s.substring(rightParen + 1, colon);
 				length = Double.parseDouble(s.substring(colon+1));
 			}else{
+				// tree without branchlength
 				name = s.substring(rightParen + 1);
 			}
+			// split String to Substrings and get an array with the subsequence of the children
 			String[] childrenString = split(s.substring(leftParen + 1, rightParen));
 			
 			Node node = new Node(formatName(name) , length);
@@ -170,6 +176,15 @@ public class NewickTree {
 			index = sb.indexOf("_");
 		}
 		return sb.toString();
+	}
+	
+	public Node getNode(int searchNode) {
+		for(Node n : nodeList) {
+			if(n.getId()==searchNode) {
+				return n;
+			}
+		}
+		return new Node();
 	}
 	
 	
