@@ -1,8 +1,12 @@
-package datastructures;
+package project;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+
+import datastructures.NewickTree;
+import datastructures.Node;
+import datastructures.SNPTable;
 
 /**
  * @author Katrin Fischer
@@ -11,25 +15,11 @@ import java.io.IOException;
 public class Main {
 	public static void main(String[] args0) throws IOException{
 		if(args0.length == 3) {
-		SNPTable lepraSNPs = new SNPTable(args0[0]);
-		NewickTree lepraTree = new NewickTree(args0[1]);
-		
-		System.out.println(lepraTree);
-		for(Node i : lepraTree.getNodeList()){
-			System.out.println(i.toString());
-		}
-		//System.out.println(lepraSNPs);
-		lepraTree.label(lepraSNPs);
-		FileWriter fw = new FileWriter(args0[2]);
-		BufferedWriter bw = new BufferedWriter(fw);
-		for(Node i : lepraTree.getNodeList()){
-		    bw.write(i.toString());
-		    bw.write("\n");
-		}
-		bw.close();
-		System.out.println("ready");
+			Project comcla = new Project(args0[0], args0[1], args0[2]);
+			comcla.compute();
+			comcla.getResults();
 		}else {
-			System.err.println("Geben Sie als ersten Dateipfad die SNP-Tabelle an und als zweite eine Newick-Datei");
+			System.err.println("Geben Sie als ersten Dateipfad die SNP-Tabelle an und als zweite eine Newick-Datei und als dritten den Pfad in dem das Ergebnis-Verzeichnis erzeugt werden soll");
 		}
 	}
 }
