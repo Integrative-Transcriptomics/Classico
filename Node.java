@@ -20,6 +20,7 @@ public class Node {
 	private int id;
 	private Map<Integer,Set<String>> label = new HashMap<Integer, Set<String>>();
 	private String name;
+	private String posSNP = "";
 	private double length;
 	private Node parent;
 	private List<Node> children = new ArrayList<Node>();
@@ -64,13 +65,44 @@ public class Node {
 	}
 	
 	
+	
+	public String toNewickPositionString(int pos) {
+		//Stellt die Laenge in Englischer Schreibweise dar
+		Locale.setDefault(Locale.ENGLISH);
+		String childrenToString = "";
+		// Kindknoten in Newickformat hinzufuegen, falls vorhanden
+		if (!children.isEmpty()) {
+			for (Node i : children) {
+				//Kinder werden durch Komma getrennt
+				if (childrenToString.equals("")) {
+					childrenToString = i.toNewickPositionString(pos);
+				} else {
+					childrenToString = childrenToString + "," + i.toNewickPositionString(pos);
+				}
+			}
+			String poslabel = "";
+			for(Object s : label.get(pos).toArray()){
+				poslabel = poslabel + "_" + s;
+			}
+			// Daten des Knotens mit Kindern ausgeben
+			return ("(" + childrenToString + ")" + name + poslabel + ":" + String.format( "%.3f", length ));
+		} else {
+			// Daten des Knotens ohne Kinder ausgeben
+			String poslabel = "";
+			for(Object s : label.get(pos).toArray()){
+				poslabel = poslabel + "_" + s;
+			}
+			return (name+ poslabel + ":" + String.format( "%.3f", length ));
+		}
+	}
+
 	/**
 	 * Gibt nur die Informationen des Knotens zur�ck
 	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	public String toString(){
-		return (name + ":" + String.format( "%.8f", length ) + "-" + id + label.toString());
+		return (name + ":" + String.format( "%.8f", length ) + "-" + id /*+ label.toString()*/);
 	}
 
 	public List<Node> getChildren() {
@@ -88,7 +120,6 @@ public class Node {
 	public Node getParent() {
 		return parent;
 	}
-
 	
 	/**
 	 * Fuegt der Liste der Kindknoten einen Knoten hinzu
@@ -98,7 +129,6 @@ public class Node {
 		this.children.add(child);
 	}
 
-
 	/**
 	 * Setzt den Elternknoten des Knoten
 	 * @param parent der Elternknoten
@@ -107,25 +137,16 @@ public class Node {
 		this.parent = parent;
 	}
 	
-
-	
 	public int getId() {
 		return id;
 	}
-
 
 	public void setId(int id) {
 		this.id = id;
 	}
 
-
 	public Map<Integer, Set<String>> getLabel() {
 		return label;
-	}
-
-
-	public void setLabel(Map<Integer, Set<String>> label) {
-		this.label = label;
 	}
 	
 	public void setLabel(int pos, String snp) {
@@ -139,6 +160,10 @@ public class Node {
 		if(parent != null) {
 			parent.setLabel(pos, snp);
 		}
+	}
+
+	public void setPosSNP(String posSNP) {
+		this.posSNP = posSNP;
 	}
 
 }
