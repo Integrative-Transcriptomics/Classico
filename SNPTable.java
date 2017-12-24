@@ -105,6 +105,7 @@ public class SNPTable {
 				} else {
 					names = Arrays.copyOfRange(splitted, 1, splitted.length);
 					for (String n : names) {
+						//formatName(n);
 						if (!"Ref".equals(n)) {
 							this.sampleNames.add(n);
 						}
@@ -115,6 +116,16 @@ public class SNPTable {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public String formatName(String name) {
+		StringBuilder sb = new StringBuilder(name);
+		int index = sb.indexOf(" ");
+		while(index != -1) {
+			sb.replace(index, index+1, "_");
+			index = sb.indexOf(" ");
+		}
+		return sb.toString();
 	}
 
 	/**
