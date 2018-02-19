@@ -8,6 +8,7 @@ import java.util.List;
 
 /**
  * Datenstruktur eines Newick-Trees
+ * 
  * @author Katrin Fischer
  *
  */
@@ -20,12 +21,15 @@ public class NewickTree {
 
 	/**
 	 * Konstruktor eines NewickTrees anhand einer Newick-Datei
-	 * @param inputFile Dateipfad der Newick-Datei
+	 * 
+	 * @param inputFile
+	 *            Dateipfad der Newick-Datei
 	 */
 	public NewickTree(String inputFile) {
 		this.inputFile = inputFile;
 		readNewickTree();
 	}
+
 	/**
 	 * Liest eine Newick-Datei ein
 	 */
@@ -35,7 +39,7 @@ public class NewickTree {
 			BufferedReader br = new BufferedReader(new FileReader(this.inputFile));
 			String line = "";
 			String newickString = "";
-			//speichert komplette Newick-Datei in einem String
+			// speichert komplette Newick-Datei in einem String
 			while ((line = br.readLine()) != null) {
 				newickString += line;
 			}
@@ -57,34 +61,35 @@ public class NewickTree {
 		if (leftParen != -1 && rightParen != -1) {
 			String name;
 			double length = 0;
-			if(colon!= -1 && colon > rightParen){
+			if (colon != -1 && colon > rightParen) {
 				// tree with branchlength
 				name = s.substring(rightParen + 1, colon);
-				length = Double.parseDouble(s.substring(colon+1));
-			}else{
+				length = Double.parseDouble(s.substring(colon + 1));
+			} else {
 				// tree without branchlength
 				name = s.substring(rightParen + 1);
 			}
-			// split String to Substrings and get an array with the subsequence of the children
+			// split String to Substrings and get an array with the subsequence
+			// of the children
 			String[] childrenString = split(s.substring(leftParen + 1, rightParen));
-			
-			//Node node = new Node(formatName(name) , length);
-			Node node = new Node(name , length);
+
+			Node node = new Node(formatName(name), length);
+			// Node node = new Node(name , length);
 			for (String sub : childrenString) {
 				Node child = readSubtree(sub);
 				node.addChild(child);
 				child.setParent(node);
 			}
 
-			node.setId(nodeList.size()+1);
+			node.setId(nodeList.size() + 1);
 			nodeList.add(node);
 			return node;
 		} else if (leftParen == rightParen) {
-			
+
 			String name = s.substring(0, colon);
-			double length = Double.parseDouble(s.substring(colon+1));
-			Node node = new Node(formatName(name) , length);
-			node.setId(nodeList.size()+1);
+			double length = Double.parseDouble(s.substring(colon + 1));
+			Node node = new Node(formatName(name), length);
+			node.setId(nodeList.size() + 1);
 			nodeList.add(node);
 			return node;
 
@@ -142,32 +147,43 @@ public class NewickTree {
 			return "Leerer Baum kann nicht ausgegeben werden";
 		}
 	}
-	
+
 	// Ausgabe des Baumes mit den Label einer Position in eine Datei
-		public String toPositionString(int pos) {
-			if (root != null) {
-				String result = root.toNewickPositionString(pos);
-				return result.substring(0, result.lastIndexOf(':')) + ";";
-			} else {
-				// Ausgabe bei leerem Baum
-				return "Leerer Baum kann nicht ausgegeben werden";
-			}
+	public String toPositionString(int pos) {
+		if (root != null) {
+			String result = root.toNewickPositionString(pos);
+			return result.substring(0, result.lastIndexOf(':')) + ";";
+		} else {
+			// Ausgabe bei leerem Baum
+			return "Leerer Baum kann nicht ausgegeben werden";
 		}
+	}
+
+	// Ausgabe des Baumes mit den Label einer Position in eine Datei
+	public String toInputPositionString(int pos, Node node) {
+		if (node != null) {
+			String result = node.toNewickInputPositionString(pos);
+			return result.substring(0, result.lastIndexOf(':')) + ";";
+		} else {
+			// Ausgabe bei leerem Baum
+			return "Leerer Baum kann nicht ausgegeben werden";
+		}
+	}
 
 	public List<Node> getNodeList() {
 		return nodeList;
 	}
-	
+
 	public void label(SNPTable snp) {
 		for (Integer pos : snp.getSNPs()) {
 			for (String sample : snp.getSampleNames()) {
 				String nuc = snp.getSnp(pos, sample);
 				String ref = snp.getReferenceSnp(pos);
-				if(nuc.equals(".")) {
+				if (nuc.equals(".")) {
 					nuc = ref;
 				}
-				for(Node current : nodeList) {
-					if(current.getName().equals(sample)) {
+				for (Node current : nodeList) {
+					if (current.getName().equals(sample)) {
 						current.setLabel(pos, nuc);
 						break;
 					}
@@ -175,7 +191,7 @@ public class NewickTree {
 			}
 		}
 	}
-	
+
 	public Node getRoot() {
 		return root;
 	}
@@ -183,27 +199,40 @@ public class NewickTree {
 	public String formatName(String name) {
 		StringBuilder sb = new StringBuilder(name);
 		int index = sb.indexOf(" ");
-		while(index != -1) {
-			sb.replace(index, index+1, "_");
+		while (index != -1) {
+			sb.replace(index, index + 1, "_");
 			index = sb.indexOf(" ");
 		}
 		int index2 = sb.indexOf("'");
-		while(index2 != -1) {
-			sb.delete(index2, index2 +1);
+		while (index2 != -1) {
+			sb.delete(index2, index2 + 1);
 			index2 = sb.indexOf("'");
 		}
 		return sb.toString();
 	}
-	
+
 	public Node getNode(int searchNode) {
-		for(Node n : nodeList) {
-			if(n.getId()==searchNode) {
+		for (Node n : nodeList) {
+			if (n.getId() == searchNode) {
 				return n;
 			}
 		}
 		return new Node("notFound", 0.0);
 	}
-	
-	
+
+	public int getMinId(int subtree) {
+		Node tree = getNode(subtree);
+		int min = Integer.MAX_VALUE;
+		if (tree.getChildren().isEmpty()) {
+			return subtree;
+		} else {
+			for (Node n : tree.getChildren()) {
+				if (n.getId() < min) {
+					min = n.getId();
+				}
+			}
+		}
+		return getMinId(min);
+	}
 
 }
