@@ -52,7 +52,7 @@ public class SNPTable {
 	 */
 	public SNPTable(Map<String, Map<Integer, String>> table, FastAEntry fastAEntry) {
 		for (String sampleName : table.keySet()) {
-			this.sampleNames.add(sampleName);
+			this.sampleNames.add(formatName(sampleName));
 			Map<Integer, String> snpMap = table.get(sampleName);
 			List<Integer> snpPositions = new ArrayList<Integer>(snpMap.keySet());
 			Collections.sort(snpPositions);
@@ -66,7 +66,7 @@ public class SNPTable {
 			for (Integer snpP : snpPositions) {
 				snps.add(snpMap.get(snpP));
 			}
-			this.snps.put(sampleName, snps);
+			this.snps.put(formatName(sampleName), snps);
 		}
 		List<String> snps = new ArrayList<String>();
 		for (Integer snpP : this.snpPos) {
@@ -84,13 +84,16 @@ public class SNPTable {
 			Integer lineNum = 0;
 			String[] names = new String[0];
 			while ((line = br.readLine()) != null) {
+				if(line.length()==0){
+					continue;
+				}
 				String[] splitted = line.split("\t");
 				if (lineNum > 0) {
 					Integer SNP = Integer.parseInt(splitted[0]);
 					this.snpPosNum.put(SNP, lineNum);
 					this.snpPos.add(SNP);
 					for (int i = 0; i < names.length; i++) {
-						String sample = names[i];
+						String sample = formatName(names[i]);
 						String snp = splitted[i + 1];
 						if (this.snps.containsKey(sample)) {
 							List<String> lis = this.snps.get(sample);
@@ -105,9 +108,8 @@ public class SNPTable {
 				} else {
 					names = Arrays.copyOfRange(splitted, 1, splitted.length);
 					for (String n : names) {
-						//formatName(n);
 						if (!"Ref".equals(n)) {
-							this.sampleNames.add(n);
+							this.sampleNames.add(formatName(n));
 						}
 					}
 				}
@@ -124,6 +126,11 @@ public class SNPTable {
 		while(index != -1) {
 			sb.replace(index, index+1, "_");
 			index = sb.indexOf(" ");
+		}
+		int index2 = sb.indexOf("'");
+		while(index2 != -1) {
+			sb.delete(index2, index2 +1);
+			index2 = sb.indexOf("'");
 		}
 		return sb.toString();
 	}
@@ -169,8 +176,8 @@ public class SNPTable {
 	 * @param snps2
 	 */
 	public void add(String name, Map<Integer, String> newSnps) {
-		if (!this.sampleNames.contains(name)) {
-			this.sampleNames.add(name);
+		if (!this.sampleNames.contains(formatName(name))) {
+			this.sampleNames.add(formatName(name));
 			List<String> sampleSNPs = new ArrayList<String>();
 			for (Integer pos : this.snpPos) {
 				if (newSnps.containsKey(pos)) {
@@ -179,10 +186,10 @@ public class SNPTable {
 					sampleSNPs.add("N");
 				}
 			}
-			this.snps.put(name, sampleSNPs);
+			this.snps.put(formatName(name), sampleSNPs);
 		} else {
 			System.err.println("could not add sample to snpTable");
-			System.err.println("sample name already exists: " + name);
+			System.err.println("sample name already exists: " + formatName(name));
 		}
 	}
 
@@ -275,8 +282,8 @@ public class SNPTable {
 		List<String> bothSampleNames = new ArrayList<String>();
 		;
 		for (String sample : this.sampleNames) {
-			if (otherSampleNames.contains(sample)) {
-				bothSampleNames.add(sample);
+			if (otherSampleNames.contains(formatName(sample))) {
+				bothSampleNames.add(formatName(sample));
 			}
 		}
 		List<Integer> othersnps = table.getSNPs();
