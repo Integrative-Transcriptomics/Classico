@@ -1,316 +1,229 @@
-package project;
+package datastructures;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import datastructures.NewickTree;
-import datastructures.Node;
-import datastructures.SNPTable;
-import datastructures.NewFile;
+/**
+ * Node enthaelt Informationen zu einem Knoten im Baum. Er beinhaltet den Namen
+ * des Knotens, die Kantenlaenge zum Elternknoten, den Elternknoten und die
+ * Knoten der Kinder.
+ * 
+ * @author Katrin Fischer
+ *
+ */
+public class Node {
 
-public class Project {
-	private SNPTable snp;
-	private NewickTree tree;
-	private NewFile file;
-	private Map<Integer, HashMap<String, List<Node>>> claden = new HashMap<Integer, HashMap<String, List<Node>>>();
-	private Map<Integer, HashMap<String, List<Node>>> supportTree = new HashMap<Integer, HashMap<String, List<Node>>>();
-	private Map<Integer, HashMap<String, List<Node>>> notSupportTree = new HashMap<Integer, HashMap<String, List<Node>>>();
-	private Map<Integer, List<Integer>> splitKeys = new HashMap<Integer, List<Integer>>();
+	private int id;
+	// Base an Position, Plus Basen der Kinder
+	private Map<Integer, Set<String>> label = new HashMap<Integer, Set<String>>();
+	private String name;
+	private String posSNP;
+	private double length;
+	private Node parent;
+	private List<Node> children = new ArrayList<Node>();
+	public boolean equals( Node that ) { return this.id == that.id; }
 
-	public Project(String snpFile, String newickTreeFile, String path) {
-		snp = new SNPTable(snpFile);
-		tree = new NewickTree(newickTreeFile);
-		file = new NewFile(path);
-		file.createDir("Ergebnis");
+	/**
+	 * Konstruktor fuer einen Knoten
+	 * 
+	 * @param nodename
+	 *            Name des Knotens
+	 * @param branchlength
+	 *            Kantenlaenge zum Elternknoten
+	 */
+	public Node(String nodename, double branchlength) {
+		name = nodename;
+		length = branchlength;
 	}
 
-	public Project(SNPTable snp, NewickTree tree, String path) {
-		this.snp = snp;
-		this.tree = tree;
-		file = new NewFile(path);
-		file.createDir("Ergebnis");
-	}
-
-	public static void main(String[] args0) throws IOException {
-		if (args0.length == 3) {
-			Project comcla = new Project(args0[0], args0[1], args0[2]);
-			comcla.compute();
-			/*int key = 0;
-			for (Integer pos : comcla.snp.getSNPs()) {
-				//key = pos;
-				comcla.label(comcla.tree, pos);
-				comcla.computeCladen(comcla.tree.getRoot(), pos, true);
-				comcla.evaluateCladen(pos);
-			}*/
-			int[] showPositions = {155648};
-			comcla.showPositions(showPositions);
-			comcla.getResults();
-			/*HashMap<String, List<Node>> hm = comcla.supportTree.get(key);
-			for (String s : hm.keySet()) {
-				for (Node nl : hm.get(s)) {
-					for (Node nt : comcla.tree.getNodeList()) {
-						if (nt.getId() == nl.getId()) {
-							nt.setPosSNP("-" + key + "-" + s.substring(1, s.length() - 1));
-						}
-					}
-				}
-			}*/
-			// System.out.println(comcla.tree.toString());
-
-			System.out.println("ready");
-		} else {
-			System.err.println(
-					"Geben Sie als ersten Dateipfad die SNP-Tabelle, als zweite eine Newick-Datei und als dritte einen Dateipfad für das Ergebnisverzeichnis an");
-		}
-	}
-
-	public void compute(){
-		for (Integer pos : snp.getSNPs()) {
-			label(tree, pos);
-			computeCladen(tree.getRoot(), pos, true);
-			evaluateCladen(pos);
-		}
-		splitKeys(file.createFile("splitKeys.txt"));
-	}
-	
-	public void computeCladen(Node node, int key, boolean withoutN) {
-
-		if (node.getLabel().containsKey(key)) {
-			Set<String> base = node.getLabel().get(key);
-			switch (base.size()) {
-			case 0:
-				System.err.println("Project:86 - Key enthalten aber keine Strings");
-				break;
-			case 1:
-				setClade(key, node, base.toString(), claden);
-				break;
-			case 2:
-				if (withoutN && node.getLabel().get(key).contains("N")) {
-					base.remove("N");
-					setClade(key, node, base.toString(), claden);
-					break;
-				}
-			default:
-				if (!node.getChildren().isEmpty()) {
-					for (Node i : node.getChildren()) {
-						// Durchsuche Kinder nach Claden
-						computeCladen(i, key, withoutN);
-					}
+	/**
+	 * Gibt einen String zurueck, mit dem Knoten und dessen Kindern im
+	 * Newickformat
+	 * 
+	 * @return String im Newickformat
+	 */
+	public String toNewickString() {
+		// Stellt die Laenge in Englischer Schreibweise dar
+		Locale.setDefault(Locale.ENGLISH);
+		String childrenToString = "";
+		// Kindknoten in Newickformat hinzufuegen, falls vorhanden
+		if (!children.isEmpty()) {
+			for (Node i : children) {
+				// Kinder werden durch Komma getrennt
+				if (childrenToString.equals("")) {
+					childrenToString = i.toNewickString();
 				} else {
-					// Knoten hat keine Kinder aber zwei Basen (Darf nicht
-					// passieren)
-					System.err.println("Project:110 - Blatt hat zwei Basen");
+					childrenToString = childrenToString + "," + i.toNewickString();
 				}
-				break;
 			}
+			// Daten des Knotens mit Kindern ausgeben
+			return ("(" + childrenToString + ")" + name + ":" + String.format("%.3f", length));
 		} else {
-			// TODO: Bedeutung??
-			System.err.println(
-					"Project:111 - Key im Knoten nicht gefunden " + key + "_" + node.getId() + "_" + node.getName());
+			// Daten des Knotens ohne Kinder ausgeben
+			return (name + ":" + String.format("%.3f", length));
 		}
 	}
 
-	public void evaluateCladen(int pos) {
-		HashMap<String, List<Node>> l = claden.get(pos);
-		List<Integer> size = new ArrayList<Integer>();
-		for (String s : l.keySet()) {
-			size.add(l.get(s).size());
-		}
-		Collections.sort(size);
-		// System.out.println(size.toString());
-		int max = size.get(size.size() - 1);
-		if (max == size.get(0)) {
-			max++;
-		}
-		for (String s : l.keySet()) {
-			List<Node> ln = l.get(s);
-			if (ln.size() < max) {
-				if (ln.size() == 1) {
-					for (Node n : ln) {
-						setClade(pos, n.getParent(), s, supportTree);
-					}
+	public String toNewickPositionString(int pos) {
+		// Stellt die Laenge in Englischer Schreibweise dar
+		Locale.setDefault(Locale.ENGLISH);
+		String childrenToString = "";
+		// Kindknoten in Newickformat hinzufuegen, falls vorhanden
+		if (!children.isEmpty()) {
+			for (Node i : children) {
+				// Kinder werden durch Komma getrennt
+				if (childrenToString.equals("")) {
+					childrenToString = i.toNewickPositionString(pos);
 				} else {
-					for (Node n : ln) {
-						setClade(pos, n.getParent(), s, notSupportTree);
-					}
+					childrenToString = childrenToString + "," + i.toNewickPositionString(pos);
 				}
 			}
-		}
-	}
-
-	public void undefNuc() {
-
-	}
-
-	public void splitKeys(String filename) {
-		for (int key : supportTree.keySet()) {
-			for (String s : supportTree.get(key).keySet()) {
-				for (Node n : supportTree.get(key).get(s)) {
-					setInt(n.getId(), key);
+			String poslabel = "";
+			if (pos != -1) {
+				for (Object s : label.get(pos).toArray()) {
+					poslabel = poslabel + "_" + s;
 				}
 			}
-		}
-		// System.out.println(splitKeys.toString());
-		FileWriter fw;
-		try {
-			fw = new FileWriter(filename);
-			BufferedWriter bw = new BufferedWriter(fw);
-			for (int i : splitKeys.keySet()) {
-				bw.write(i + "\t");
-				Collections.sort(splitKeys.get(i));
-				for (int j : splitKeys.get(i)) {
-					bw.write(tree.getNode(i).getLabel().get(j).toString());
-				}
-				bw.write("\n");
-			}
-			bw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	public void label(NewickTree tree, Integer key) {
-		for (String sample : snp.getSampleNames()) {
-			String nuc = snp.getSnp(key, sample);
-			String ref = snp.getReferenceSnp(key);
-			if (nuc.equals(".")) {
-				nuc = ref;
-			}
-			for (Node current : tree.getNodeList()) {
-				if (current.getName().equals(sample)) {
-					current.setLabel(key, nuc);
-					break;
-				}
-			}
-		}
-		List<Node> missingNodes = new ArrayList<Node>();
-		for (Node n : tree.getNodeList()) {
-			if (!n.getLabel().containsKey(key) && n.getChildren().isEmpty()) {
-				missingNodes.add(n);
-			}
-		}
-		if (!missingNodes.isEmpty()) {
-			// TODO: Grammatik 1 oder mehr Knoten
-			//System.err.println("Baum stimmt nicht mit SNPTable ueberein, Sample " + missingNodes.toString()
-					//+ " sind nicht in SNP enthalten");
-		}
-	}
-
-	public void setClade(int key, Node node, String label, Map<Integer, HashMap<String, List<Node>>> claden) {
-		if (claden.containsKey(key)) {
-			if (claden.get(key).containsKey(label)) {
-				claden.get(key).get(label).add(node);
-			} else {
-				List<Node> split = new ArrayList<Node>();
-				split.add(node);
-				claden.get(key).put(label, split);
-			}
-
+			// Daten des Knotens mit Kindern ausgeben
+			return ("(" + childrenToString + ")" + name + "_" + id + poslabel + ":" + String.format("%.3f", length));
 		} else {
-			HashMap<String, List<Node>> labeledNode = new HashMap<String, List<Node>>();
-			List<Node> split = new ArrayList<Node>();
-			split.add(node);
-			labeledNode.put(label, split);
-			claden.put(key, labeledNode);
-		}
-	}
-	
-	public void getResults(){
-		toFile(file.createFile("claden.txt"), claden);
-		toFile(file.createFile("supportTree.txt"), supportTree);
-		toFile(file.createFile("notSupportTree.txt"), notSupportTree);
-	}
-
-	public void toFile(String filename, Map<Integer, HashMap<String, List<Node>>> claden) {
-		FileWriter fw;
-		try {
-			fw = new FileWriter(filename);
-			BufferedWriter bw = new BufferedWriter(fw);
-			for (int i : claden.keySet()) {
-				// System.out.println(i + ":");
-				bw.write(i + ":\n");
-				for (String l : claden.get(i).keySet()) {
-					// System.out.println(l + ":");
-					bw.write(l + ":\n");
-					for (Node n : claden.get(i).get(l)) {
-						/*
-						 * System.out.println( n.getId() + "-" + n.getName() +
-						 * "-" + n.getLabel().get(i) + ":" +
-						 * n.toNewickString());
-						 */
-						bw.write(n.getId() + "-" + n.getName() + "-" + n.getLabel().get(i) + ":" + n.toNewickString()
-								+ "\n");
-					}
+			// Daten des Knotens ohne Kinder ausgeben
+			String poslabel = "";
+			if (pos != -1) {
+				for (Object s : label.get(pos).toArray()) {
+					poslabel = poslabel + "_" + s;
 				}
-				// System.out.println();
-				bw.write("\n");
 			}
-			bw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			return (name + "_" + id + poslabel + ":" + String.format("%.3f", length));
 		}
 	}
 
-	public void setInt(int id, int pos) {
-		if (splitKeys.containsKey(id)) {
-			splitKeys.get(id).add(pos);
+	public String toNewickInputPositionString(int pos) {
+		// Stellt die Laenge in Englischer Schreibweise dar
+		Locale.setDefault(Locale.ENGLISH);
+		String childrenToString = "";
+		// Kindknoten in Newickformat hinzufuegen, falls vorhanden
+		if (!children.isEmpty()) {
+			for (Node i : children) {
+				// Kinder werden durch Komma getrennt
+				if (childrenToString.equals("")) {
+					childrenToString = i.toNewickInputPositionString(pos);
+				} else {
+					childrenToString = childrenToString + "," + i.toNewickInputPositionString(pos);
+				}
+			}
+			String poslabel = "";
+			if (posSNP != null) {
+				poslabel = "_" + posSNP;
+			}
+			// Daten des Knotens mit Kindern ausgeben
+			return ("(" + childrenToString + ")" + name + "_" + id + poslabel + ":" + String.format("%.3f", length));
 		} else {
-			List<Integer> set = new ArrayList<Integer>();
-			set.add(pos);
-			splitKeys.put(id, set);
-		}
-	}
-	
-	public void showPositions(int[] pos){
-		for(int i: pos){
-			if(snp.getSNPs().contains(i)){
-				showCladeAtPosition(i);
-			}else{
-				System.out.println("Position " + i + " nicht in Tabelle enthalten");
+			// Daten des Knotens ohne Kinder ausgeben
+			String poslabel = "";
+			if (posSNP != null) {
+				poslabel = "_" + posSNP;
 			}
+				for (Object s : label.get(pos).toArray()) {
+					poslabel = poslabel + "_" + s;
+				}
+			return (name + "_" + id + poslabel + ":" + String.format("%.3f", length));
 		}
 	}
 
-	public void showCladeAtPosition(int pos) {
-		String filename = file.createFile("TreeFor" + pos+ ".nwk");
-		FileWriter fw;
-		try {
-		fw = new FileWriter(filename);
-		BufferedWriter bw = new BufferedWriter(fw);
-		bw.write(tree.toPositionString(pos));
-		bw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	/**
+	 * Gibt nur die Informationen des Knotens zurï¿½ck
+	 * 
+	 * @see java.lang.Object#toString()
+	 */
+	public String toString() {
+		return (name + ":" + String.format("%.8f", length) + "-"
+				+ id /* + label.toString() */);
 	}
-	
-	public int getParentId(String name){
-		int id=-1;
-		for(Node n : tree.getNodeList()){
-			if(n.getName().equals(name)){
-				id= n.getParent().getId();
-			}
-		}
+
+	public List<Node> getChildren() {
+		return children;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public double getLength() {
+		return length;
+	}
+
+	public Node getParent() {
+		return parent;
+	}
+
+	/**
+	 * Fuegt der Liste der Kindknoten einen Knoten hinzu
+	 * 
+	 * @param child
+	 *            der neue Kindknoten
+	 */
+	public void addChild(Node child) {
+		this.children.add(child);
+	}
+
+	/**
+	 * Setzt den Elternknoten des Knoten
+	 * 
+	 * @param parent
+	 *            der Elternknoten
+	 */
+	public void setParent(Node parent) {
+		this.parent = parent;
+	}
+
+	public int getId() {
 		return id;
 	}
-	
-	public void getSplit(String name){
-		int id = getParentId(name);
-		if(splitKeys.containsKey(id)){
-			System.out.println(name + ": " + splitKeys.get(id).toString());
-		}else{
-			System.out.println("Kein passender Split für Knoten " + name + " mit ID " + id + " gefunden");
+
+	public void setId(int id) {
+		this.id = id;
+	}
+
+	public Map<Integer, Set<String>> getLabel() {
+		return label;
+	}
+
+	/**
+	 * Legt das Label des Knotens und der Eltern an einer Position fest
+	 * 
+	 * @param pos
+	 *            Position der SNP
+	 * @param snp
+	 *            Base an Position
+	 */
+	public void setLabel(int pos, String snp) {
+		if (label.containsKey(pos)) {
+			label.get(pos).add(snp);
+		} else {
+			Set<String> set = new HashSet<String>();
+			set.add(snp);
+			label.put(pos, set);
+		}
+		if (parent != null) {
+			parent.setLabel(pos, snp);
 		}
 	}
 
+	public void setPosSNP(String posSNP) {
+		this.posSNP = posSNP;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + id;
+		return result;
+	}
 }
