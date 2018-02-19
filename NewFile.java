@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 public class NewFile {
-	
+	//Ergebnisordnerpfad
 	private String path;
 	
 	public NewFile(String path){
