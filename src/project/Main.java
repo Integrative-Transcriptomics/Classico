@@ -20,13 +20,16 @@ public class Main {
 			l.add(3125);
 			l.add(15282);
 			comcla.showPositions(l);
-			// Einzigartige SNPs für einen Teilbaum
-			comcla.getUniqueSubtreeSNPs(comcla.getFilepath().createFile("UniqueSubTree.txt"), 8);
+			// Einzigartige SNPs fï¿½r einen Teilbaum
+			comcla.getUniqueSubtreeSNPs(comcla.getFilepath().createFile("UniqueSubTree.txt"), 13);
 			// Zeige Baum mit Kladenallelen
-			for(int i : comcla.snp.getSNPs()){
-				comcla.treeSNPs(i);
-			}
-			// Einzigartige SNPs für mehrere verschiedene Individuen
+			List<Integer> j = new ArrayList<Integer>();
+            l.add(-1);
+            comcla.showPositions(j);
+//			for(int i : comcla.snp.getSNPs()){
+//				comcla.treeSNPs(i);
+//			}
+			// Einzigartige SNPs fï¿½r mehrere verschiedene Individuen
 			List<Integer> k = new ArrayList<Integer>();
 			k.add(1);
 			k.add(6);

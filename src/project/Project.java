@@ -68,7 +68,7 @@ public class Project {
 		}
 		splitKeys(filepath.createFile("supportSplitKeys.txt"), true);
 		splitKeys(filepath.createFile("notSupportSplitKeys.txt"), false);
-		nameAndID(filepath.createFile("nameAndID.txt"));
+		nameAndID(filepath.createFile("IDzuordnung.txt"));
 	}
 
 	public void computeCladen(Node node, int key, boolean withoutN) {
@@ -300,7 +300,13 @@ public class Project {
 	}
 
 	public void showCladeAtPosition(int pos) {
-		String filename = filepath.createFile("TreeFor" + pos + ".nwk");
+		String filename;
+		if(pos == -1){
+			filename = filepath.createFile("IDTree.nwk");
+		}else{
+			filename = filepath.createFile("labeledTree" + pos + ".nwk");
+		}
+		
 		FileWriter fw;
 		try {
 			fw = new FileWriter(filename);
@@ -549,7 +555,7 @@ public class Project {
 			if (treeSNP.isEmpty()) {
 				System.err.println("Kein Key mit dem Wert " + pos + " in notSupportTree und SupportTree enthalten.");
 			} else {
-				String filename = filepath.createFile("TreeFor" + pos + "star" + ".nwk");
+				String filename = filepath.createFile("Clade-Tree" + pos + ".nwk");
 				FileWriter fw;
 				fw = new FileWriter(filename);
 				for (String s : treeSNP.keySet()) {

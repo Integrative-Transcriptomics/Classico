@@ -8,10 +8,10 @@ public class NewFile {
 	private String path;
 	
 	public NewFile(String path){
-		if(path.lastIndexOf('\\')==path.length()){
+		if(path.lastIndexOf('/')==path.length()){
 			this.path = path;
 		}else{
-			this.path = path + "\\";
+			this.path = path + "/";
 		}
 	}
 	
@@ -39,6 +39,6 @@ public class NewFile {
 	public String createFile(String name){
 		if(this.checkFile(new File(name)))
             System.out.println(name + " erzeugt");
-		return path + "\\" + name;
+		return path + "/" + name;
 	} 
 }
