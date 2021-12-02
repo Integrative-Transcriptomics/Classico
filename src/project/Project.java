@@ -50,7 +50,7 @@ public class Project
 
         splitKeys(filepath.createFile("supportSplitKeys.txt"), true);
         splitKeys(filepath.createFile("notSupportSplitKeys.txt"), false);
-        nameAndID(filepath.createFile("IDzuordnung.txt"));
+        nameAndID(filepath.createFile("IDdistribution.txt"));
     }
 
     public void computeCladen(Node node, int i, boolean flag)
