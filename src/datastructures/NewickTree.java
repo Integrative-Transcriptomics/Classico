@@ -1,238 +1,259 @@
+// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.geocities.com/kpdus/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   NewickTree.java
+
 package datastructures;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.*;
+import java.util.*;
 
-/**
- * Datenstruktur eines Newick-Trees
- * 
- * @author Katrin Fischer
- *
- */
-public class NewickTree {
+// Referenced classes of package datastructures:
+//            Node, SNPTable
 
-	private String inputFile;
+public class NewickTree
+{
 
-	private Node root;
-	private List<Node> nodeList = new ArrayList<Node>();
+    public NewickTree(String s)
+    {
+        nodeList = new ArrayList();
+        inputFile = s;
+        readNewickTree();
+    }
 
-	/**
-	 * Konstruktor eines NewickTrees anhand einer Newick-Datei
-	 * 
-	 * @param inputFile
-	 *            Dateipfad der Newick-Datei
-	 */
-	public NewickTree(String inputFile) {
-		this.inputFile = inputFile;
-		readNewickTree();
-	}
+    private void readNewickTree()
+    {
+        try
+        {
+            BufferedReader bufferedreader = new BufferedReader(new FileReader(inputFile));
+            String s = "";
+            String s1;
+            String s2;
+            for(s2 = ""; (s1 = bufferedreader.readLine()) != null; s2 = (new StringBuilder()).append(s2).append(s1).toString());
+            root = readSubtree(s2.substring(0, s2.length() - 1));
+            Iterator iterator = nodeList.iterator();
+            do
+            {
+                if(!iterator.hasNext())
+                    break;
+                Node node = (Node)iterator.next();
+                if(!node.getChildren().isEmpty())
+                    node.setName("");
+            } while(true);
+        }
+        catch(IOException ioexception)
+        {
+            ioexception.printStackTrace();
+        }
+    }
 
-	/**
-	 * Liest eine Newick-Datei ein
-	 */
-	private void readNewickTree() {
-		try {
-			@SuppressWarnings("resource")
-			BufferedReader br = new BufferedReader(new FileReader(this.inputFile));
-			String line = "";
-			String newickString = "";
-			// speichert komplette Newick-Datei in einem String
-			while ((line = br.readLine()) != null) {
-				newickString += line;
-			}
-			System.out.println(newickString);
-			// entfernt das Semicolon und ruft readSubtree auf
-			this.root = readSubtree(newickString.substring(0, newickString.length() - 1));
-			for(Node n : nodeList){
-				if(!n.getChildren().isEmpty()){
-					n.setName("");
-				}
-			}
+    private Node readSubtree(String s)
+    {
+        int i = s.indexOf('(');
+        int j = s.lastIndexOf(')');
+        int k = s.lastIndexOf(':');
+        if(i != -1 && j != -1)
+        {
+            double d = 0.0D;
+            String s1;
+            if(k != -1 && k > j)
+            {
+                s1 = s.substring(j + 1, k);
+                d = Double.parseDouble(s.substring(k + 1));
+            } else
+            {
+                s1 = s.substring(j + 1);
+            }
+            String as[] = split(s.substring(i + 1, j));
+            Node node1 = new Node(formatName(s1), d);
+            String as1[] = as;
+            int l = as1.length;
+            for(int i1 = 0; i1 < l; i1++)
+            {
+                String s3 = as1[i1];
+                Node node2 = readSubtree(s3);
+                node1.addChild(node2);
+                node2.setParent(node1);
+            }
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+            node1.setId(nodeList.size() + 1);
+            nodeList.add(node1);
+            return node1;
+        }
+        if(i == j)
+        {
+            String s2 = s.substring(0, k);
+            double d1 = Double.parseDouble(s.substring(k + 1));
+            Node node = new Node(formatName(s2), d1);
+            node.setId(nodeList.size() + 1);
+            nodeList.add(node);
+            return node;
+        } else
+        {
+            throw new RuntimeException("unbalanced brackets");
+        }
+    }
 
-	private Node readSubtree(String s) {
+    private static String[] split(String s)
+    {
+        ArrayList arraylist = new ArrayList();
+        int i = 0;
+        int j = 0;
+        for(int k = 0; k < s.length(); k++)
+            switch(s.charAt(k))
+            {
+            case 42: // '*'
+            case 43: // '+'
+            default:
+                break;
 
-		int leftParen = s.indexOf('(');
-		int rightParen = s.lastIndexOf(')');
-		int colon = s.lastIndexOf(':');
+            case 40: // '('
+                j++;
+                break;
 
-		if (leftParen != -1 && rightParen != -1) {
-			String name;
-			double length = 0;
-			if (colon != -1 && colon > rightParen) {
-				// tree with branchlength
-				name = s.substring(rightParen + 1, colon);
-				length = Double.parseDouble(s.substring(colon + 1));
-			} else {
-				// tree without branchlength
-				name = s.substring(rightParen + 1);
-			}
-			// split String to Substrings and get an array with the subsequence
-			// of the children
-			String[] childrenString = split(s.substring(leftParen + 1, rightParen));
+            case 41: // ')'
+                i++;
+                break;
 
-			Node node = new Node(formatName(name), length);
-			// Node node = new Node(name , length);
-			for (String sub : childrenString) {
-				Node child = readSubtree(sub);
-				node.addChild(child);
-				child.setParent(node);
-			}
+            case 44: // ','
+                if(j == i)
+                    arraylist.add(Integer.valueOf(k));
+                break;
+            }
 
-			node.setId(nodeList.size() + 1);
-			nodeList.add(node);
-			return node;
-		} else if (leftParen == rightParen) {
+        int l = arraylist.size() + 1;
+        String as[] = new String[l];
+        if(l == 1)
+        {
+            as[0] = s;
+        } else
+        {
+            as[0] = s.substring(0, ((Integer)arraylist.get(0)).intValue());
+            for(int i1 = 1; i1 < arraylist.size(); i1++)
+                as[i1] = s.substring(((Integer)arraylist.get(i1 - 1)).intValue() + 1, ((Integer)arraylist.get(i1)).intValue());
 
-			String name = s.substring(0, colon);
-			double length = Double.parseDouble(s.substring(colon + 1));
-			Node node = new Node(formatName(name), length);
-			node.setId(nodeList.size() + 1);
-			nodeList.add(node);
-			return node;
+            as[l - 1] = s.substring(((Integer)arraylist.get(arraylist.size() - 1)).intValue() + 1);
+        }
+        return as;
+    }
 
-		} else
-			throw new RuntimeException("unbalanced brackets");
-	}
+    public String toString()
+    {
+        if(root != null)
+        {
+            String s = root.toNewickString();
+            return (new StringBuilder()).append(s.substring(0, s.lastIndexOf(':'))).append(";").toString();
+        } else
+        {
+            return "Empty tree cannot be exported.";
+        }
+    }
 
-	private static String[] split(String s) {
+    public String toPositionString(int i, boolean flag, Node node)
+    {
+        Node node1;
+        if(flag)
+            node1 = node;
+        else
+            node1 = root;
+        if(node1 != null)
+        {
+            String s = node1.toNewickPositionString(i, flag);
+            return (new StringBuilder()).append(s.substring(0, s.lastIndexOf(':'))).append(";").toString();
+        } else
+        {
+            return "Empty tree cannot be exported.";
+        }
+    }
 
-		ArrayList<Integer> splitIndices = new ArrayList<>();
+    public List getNodeList()
+    {
+        return nodeList;
+    }
 
-		int rightParenCount = 0;
-		int leftParenCount = 0;
-		for (int i = 0; i < s.length(); i++) {
-			switch (s.charAt(i)) {
-			case '(':
-				leftParenCount++;
-				break;
-			case ')':
-				rightParenCount++;
-				break;
-			case ',':
-				if (leftParenCount == rightParenCount)
-					splitIndices.add(i);
-				break;
-			}
-		}
+    public void label(SNPTable snptable)
+    {
+label0:
+        {
+            Iterator iterator = snptable.getSNPs().iterator();
+            do
+            {
+                if(!iterator.hasNext())
+                    break label0;
+                Integer integer = (Integer)iterator.next();
+                Iterator iterator1 = snptable.getSampleNames().iterator();
+label1:
+                do
+                {
+                    if(!iterator1.hasNext())
+                        break;
+                    String s = (String)iterator1.next();
+                    String s1 = snptable.getSnp(integer, s);
+                    String s2 = snptable.getReferenceSnp(integer);
+                    if(s1.equals("."))
+                        s1 = s2;
+                    Iterator iterator2 = nodeList.iterator();
+                    Node node;
+                    do
+                    {
+                        if(!iterator2.hasNext())
+                            continue label1;
+                        node = (Node)iterator2.next();
+                    } while(!node.getName().equals(s));
+                    node.setLabel(integer.intValue(), s1);
+                } while(true);
+            } while(true);
+        }
+    }
 
-		int numSplits = splitIndices.size() + 1;
-		String[] splits = new String[numSplits];
+    public Node getRoot()
+    {
+        return root;
+    }
 
-		if (numSplits == 1) {
-			splits[0] = s;
-		} else {
+    public String formatName(String s)
+    {
+        StringBuilder stringbuilder = new StringBuilder(s);
+        for(int i = stringbuilder.indexOf(" "); i != -1; i = stringbuilder.indexOf(" "))
+            stringbuilder.replace(i, i + 1, "_");
 
-			splits[0] = s.substring(0, splitIndices.get(0));
+        for(int j = stringbuilder.indexOf("'"); j != -1; j = stringbuilder.indexOf("'"))
+            stringbuilder.delete(j, j + 1);
 
-			for (int i = 1; i < splitIndices.size(); i++) {
-				splits[i] = s.substring(splitIndices.get(i - 1) + 1, splitIndices.get(i));
-			}
+        return stringbuilder.toString();
+    }
 
-			splits[numSplits - 1] = s.substring(splitIndices.get(splitIndices.size() - 1) + 1);
-		}
+    public Node getNode(int i)
+    {
+        for(Iterator iterator = nodeList.iterator(); iterator.hasNext();)
+        {
+            Node node = (Node)iterator.next();
+            if(node.getId() == i)
+                return node;
+        }
 
-		return splits;
-	}
+        return new Node("notFound", 0.0D);
+    }
 
-	// Ausgabe des Baumes in der Konsole
-	public String toString() {
-		if (root != null) {
-			String result = root.toNewickString();
-			return result.substring(0, result.lastIndexOf(':')) + ";";
-		} else {
-			// Ausgabe bei leerem Baum
-			return "Leerer Baum kann nicht ausgegeben werden";
-		}
-	}
+    public int getMinId(int i)
+    {
+        Node node = getNode(i);
+        int j = 0x7fffffff;
+        if(node.getChildren().isEmpty())
+            return i;
+        Iterator iterator = node.getChildren().iterator();
+        do
+        {
+            if(!iterator.hasNext())
+                break;
+            Node node1 = (Node)iterator.next();
+            if(node1.getId() < j)
+                j = node1.getId();
+        } while(true);
+        return getMinId(j);
+    }
 
-	// Ausgabe des Baumes mit den Label einer Position in eine Datei
-	public String toPositionString(int pos, boolean input, Node node) {
-		Node firstNode;
-		if(input){
-			firstNode = node;
-		}else{
-			firstNode = root;
-		}
-		if (firstNode != null) {
-			String result = firstNode.toNewickPositionString(pos, input);
-			return result.substring(0, result.lastIndexOf(':')) + ";";
-		} else {
-			// Ausgabe bei leerem Baum
-			return "Leerer Baum kann nicht ausgegeben werden";
-		}
-	}
-
-	public List<Node> getNodeList() {
-		return nodeList;
-	}
-
-	public void label(SNPTable snp) {
-		for (Integer pos : snp.getSNPs()) {
-			for (String sample : snp.getSampleNames()) {
-				String nuc = snp.getSnp(pos, sample);
-				String ref = snp.getReferenceSnp(pos);
-				if (nuc.equals(".")) {
-					nuc = ref;
-				}
-				for (Node current : nodeList) {
-					if (current.getName().equals(sample)) {
-						current.setLabel(pos, nuc);
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	public Node getRoot() {
-		return root;
-	}
-
-	public String formatName(String name) {
-		StringBuilder sb = new StringBuilder(name);
-		int index = sb.indexOf(" ");
-		while (index != -1) {
-			sb.replace(index, index + 1, "_");
-			index = sb.indexOf(" ");
-		}
-		int index2 = sb.indexOf("'");
-		while (index2 != -1) {
-			sb.delete(index2, index2 + 1);
-			index2 = sb.indexOf("'");
-		}
-		return sb.toString();
-	}
-
-	public Node getNode(int searchNode) {
-		for (Node n : nodeList) {
-			if (n.getId() == searchNode) {
-				return n;
-			}
-		}
-		return new Node("notFound", 0.0);
-	}
-
-	public int getMinId(int subtree) {
-		Node tree = getNode(subtree);
-		int min = Integer.MAX_VALUE;
-		if (tree.getChildren().isEmpty()) {
-			return subtree;
-		} else {
-			for (Node n : tree.getChildren()) {
-				if (n.getId() < min) {
-					min = n.getId();
-				}
-			}
-		}
-		return getMinId(min);
-	}
-
+    private String inputFile;
+    private Node root;
+    private List nodeList;
 }

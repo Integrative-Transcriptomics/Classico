@@ -1,45 +1,50 @@
+// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.geocities.com/kpdus/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   Pair.java
+
 package utilities;
-/**
- * 
- */
 
-/**
- * @author Alexander Seitz
- *
- */
-public class Pair<A extends Comparable<A>, B extends Comparable<B>> implements Comparable<Pair<A,B>> {
-	
-	private A first;
-	private B second;
-	
-	public Pair(A first, B second){
-		this.first = first;
-		this.second = second;
-	}
-	
-	public A getFirst(){
-		return this.first;
-	}
-	
-	public B getSecond(){
-		return this.second;
-	}
-	
-	public String toString() {
-		return "("+this.first+"/"+this.second+")";
-	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Comparable#compareTo(java.lang.Object)
-	 */
-	@Override
-	public int compareTo(Pair<A, B> o) {
-		int res = this.first.compareTo(o.getFirst());
-		if(res == 0) {
-			return this.second.compareTo(o.getSecond());
-		}else {
-			return res;
-		}
-	}
+public class Pair
+    implements Comparable
+{
 
+    public Pair(Comparable comparable, Comparable comparable1)
+    {
+        first = comparable;
+        second = comparable1;
+    }
+
+    public Comparable getFirst()
+    {
+        return first;
+    }
+
+    public Comparable getSecond()
+    {
+        return second;
+    }
+
+    public String toString()
+    {
+        return (new StringBuilder()).append("(").append(first).append("/").append(second).append(")").toString();
+    }
+
+    public int compareTo(Pair pair)
+    {
+        int i = first.compareTo(pair.getFirst());
+        if(i == 0)
+            return second.compareTo(pair.getSecond());
+        else
+            return i;
+    }
+
+    public int compareTo(Object obj)
+    {
+        return compareTo((Pair)obj);
+    }
+
+    private Comparable first;
+    private Comparable second;
 }

@@ -1,589 +1,688 @@
+// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.geocities.com/kpdus/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   Project.java
+
 package project;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import datastructures.*;
+import java.io.*;
+import java.util.*;
 
-import datastructures.NewickTree;
-import datastructures.Node;
-import datastructures.SNPTable;
-import datastructures.NewFile;
+public class Project
+{
 
-public class Project {
-	public SNPTable snp;
-	private NewickTree tree;
-	private NewFile filepath;
-	// Position(Base(Liste der Knoten))
-	private Map<Integer, HashMap<String, List<Node>>> claden = new HashMap<Integer, HashMap<String, List<Node>>>();
-	// Position(Base(Liste der Knoten)) nur die Positionen die für den Baum
-	// sprechen
-	private Map<Integer, HashMap<String, List<Node>>> supportTree = new HashMap<Integer, HashMap<String, List<Node>>>();
-	// Position(Base(Liste der Knoten)) nur die Positionen die gegen den Baum
-	// sprechen
-	private Map<Integer, HashMap<String, List<Node>>> notSupportTree = new HashMap<Integer, HashMap<String, List<Node>>>();
-	// Knotenid(Positionen) nur die die für den Baum sprechen
-	private Map<Integer, List<Integer>> supportSplitKeys = new HashMap<Integer, List<Integer>>();
-	// Knotenid(Positionen) nur die die gegen den Baum sprechen
-	private Map<Integer, List<Integer>> notSupportSplitKeys = new HashMap<Integer, List<Integer>>();
+    public Project(String s, String s1, String s2)
+    {
+        claden = new HashMap();
+        supportTree = new HashMap();
+        notSupportTree = new HashMap();
+        supportSplitKeys = new HashMap();
+        notSupportSplitKeys = new HashMap();
+        snp = new SNPTable(s);
+        tree = new NewickTree(s1);
+        filepath = new NewFile(s2);
+        // filepath.createDir("Ergebnis");
+    }
 
-	public Project(String snpFile, String newickTreeFile, String path) {
-		snp = new SNPTable(snpFile);
-		System.out.println(snp.getSampleNames());
-		tree = new NewickTree(newickTreeFile);
-		filepath = new NewFile(path);
-		filepath.createDir("Ergebnis");
-	}
+    public Project(SNPTable snptable, NewickTree newicktree, String s)
+    {
+        claden = new HashMap();
+        supportTree = new HashMap();
+        notSupportTree = new HashMap();
+        supportSplitKeys = new HashMap();
+        notSupportSplitKeys = new HashMap();
+        snp = snptable;
+        tree = newicktree;
+        filepath = new NewFile(s);
+        // filepath.createDir("Ergebnis");
+    }
 
-	public Project(SNPTable snp, NewickTree tree, String path) {
-		this.snp = snp;
-		this.tree = tree;
-		filepath = new NewFile(path);
-		filepath.createDir("Ergebnis");
-	}
+    public void compute()
+    {
+        int i;
+        for(Iterator iterator = snp.getSNPs().iterator(); iterator.hasNext(); evaluateCladen(i))
+        {
+            i = ((Integer)iterator.next()).intValue();
+            label(tree, Integer.valueOf(i));
+            computeCladen(tree.getRoot(), i, true);
+        }
 
-	public static void main(String[] args0) throws IOException {
-		if (args0.length == 3) {
-			Project comcla = new Project(args0[0], args0[1], args0[2]);
-			comcla.compute();
-			List<Integer> showPositions = new ArrayList<Integer>();
-			showPositions.add(44945);
-			comcla.showPositions(showPositions);
-			comcla.getResults();
-		} else {
-			System.err.println("Falsche Eingabeparameter: [SNP-Tabelle][Newick-Datei][Ergebnispfad]");
-		}
-	}
+        splitKeys(filepath.createFile("supportSplitKeys.txt"), true);
+        splitKeys(filepath.createFile("notSupportSplitKeys.txt"), false);
+        nameAndID(filepath.createFile("IDzuordnung.txt"));
+    }
 
-	public void compute() {
-		for (int pos : snp.getSNPs()) {
-			label(tree, pos);
-			computeCladen(tree.getRoot(), pos, true);
-			evaluateCladen(pos);
-		}
-		splitKeys(filepath.createFile("supportSplitKeys.txt"), true);
-		splitKeys(filepath.createFile("notSupportSplitKeys.txt"), false);
-		nameAndID(filepath.createFile("IDzuordnung.txt"));
-	}
+    public void computeCladen(Node node, int i, boolean flag)
+    {
+        if(node.getLabel().containsKey(Integer.valueOf(i)))
+        {
+            Set set = (Set)node.getLabel().get(Integer.valueOf(i));
+            switch(set.size())
+            {
+            case 0: // '\0'
+                System.err.println("Project:86 - Key is given, but no string provided");
+                break;
 
-	public void computeCladen(Node node, int key, boolean withoutN) {
+            case 1: // '\001'
+                setClade(i, node, set.toString(), claden);
+                break;
 
-		if (node.getLabel().containsKey(key)) {
-			Set<String> base = node.getLabel().get(key);
-			switch (base.size()) {
-			case 0:
-				System.err.println("Project:86 - Key enthalten aber keine Strings");
-				break;
-			case 1:
-				setClade(key, node, base.toString(), claden);
-				break;
-			case 2:
-				if (withoutN && node.getLabel().get(key).contains("N")) {
-					if (node.getId() == tree.getRoot().getId()) {
-						break;
-					}
-					base.remove("N");
-					setClade(key, node, base.toString(), claden);
-					break;
-				}
-			default:
-				if (!node.getChildren().isEmpty()) {
-					for (Node i : node.getChildren()) {
-						// Durchsuche Kinder nach Claden
-						computeCladen(i, key, withoutN);
-					}
-				} else {
-					// Knoten hat keine Kinder aber zwei Basen (Darf nicht
-					// passieren)
-					System.err.println("Project:110 - Blatt hat zwei Basen");
-				}
-				break;
-			}
-		} else {
-			// TODO: Bedeutung??
-			System.err.println(
-					"Project:130 - Key im Knoten nicht gefunden " + key + "_" + node.getId() + "_" + node.getName());
-		}
-	}
+            case 2: // '\002'
+                if(flag && ((Set)node.getLabel().get(Integer.valueOf(i))).contains("N"))
+                {
+                    if(node.getId() != tree.getRoot().getId())
+                    {
+                        set.remove("N");
+                        setClade(i, node, set.toString(), claden);
+                    }
+                    break;
+                }
+                // fall through
 
-	public void evaluateCladen(int pos) {
-		HashMap<String, List<Node>> l = claden.get(pos);
-		List<Integer> size = new ArrayList<Integer>();
-		if (l != null) {
-			for (String s : l.keySet()) {
-				size.add(l.get(s).size());
-			}
-			Collections.sort(size);
-			int max = size.get(size.size() - 1);
-			if (max == size.get(0)) {
-				max++;
-			}
-			for (String s : l.keySet()) {
-				List<Node> ln = l.get(s);
-				if (ln.size() < max) {
-					if (ln.size() == 1) {
-						for (Node n : ln) {
-							setClade(pos, n, s, supportTree);
-						}
-					} else {
-						for (Node n : ln) {
-							setClade(pos, n, s, notSupportTree);
-						}
-					}
-				}
-			}
-		}
-	}
+            default:
+                if(!node.getChildren().isEmpty())
+                {
+                    Node node1;
+                    for(Iterator iterator = node.getChildren().iterator(); iterator.hasNext(); computeCladen(node1, i, flag))
+                        node1 = (Node)iterator.next();
 
-	public void splitKeys(String filename, boolean support) {
-		Map<Integer, List<Integer>> splitKeys;
-		if (support) {
-			for (int key : supportTree.keySet()) {
-				for (String s : supportTree.get(key).keySet()) {
-					for (Node n : supportTree.get(key).get(s)) {
-						setInt(n.getId(), key, supportSplitKeys);
-					}
-				}
-			}
-			splitKeys = supportSplitKeys;
-		} else {
-			for (int key : notSupportTree.keySet()) {
-				for (String s : notSupportTree.get(key).keySet()) {
-					for (Node n : notSupportTree.get(key).get(s)) {
-						setInt(n.getId(), key, notSupportSplitKeys);
-					}
-				}
-			}
-			splitKeys = notSupportSplitKeys;
-		}
+                } else
+                {
+                    System.err.println("Project:110 - Leaf has two bases");
+                }
+                break;
+            }
+        } else
+        {
+            System.err.println((new StringBuilder()).append("Project:130 - Key not found").append(i).append("_").append(node.getId()).append("_").append(node.getName()).toString());
+        }
+    }
 
-		FileWriter fw;
-		try {
-			fw = new FileWriter(filename);
-			BufferedWriter bw = new BufferedWriter(fw);
-			List<Integer> keyList = new ArrayList<Integer>();
-			for (int j : splitKeys.keySet()) {
-				keyList.add(j);
-			}
-			Collections.sort(keyList);
-			for (int i : keyList) {
-				Node ni = tree.getNode(i);
-				if (ni.getId() != tree.getRoot().getId()) {
-					bw.write(ni.getParent().getId() + "->" + i + "\t");
-				} else {
-					bw.write("Root " + i + "\t");
-				}
-				bw.write(splitKeys.get(i).size() + "\t");
-				Collections.sort(splitKeys.get(i));
-				for (int j : splitKeys.get(i)) {
-					bw.write(j + ":" + tree.getNode(i).getLabel().get(j).toString());
-				}
-				bw.write("\n");
-			}
-			bw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+    public void evaluateCladen(int i)
+    {
+        HashMap hashmap = (HashMap)claden.get(Integer.valueOf(i));
+        ArrayList arraylist = new ArrayList();
+        if(hashmap != null)
+        {
+            String s;
+            for(Iterator iterator = hashmap.keySet().iterator(); iterator.hasNext(); arraylist.add(Integer.valueOf(((List)hashmap.get(s)).size())))
+                s = (String)iterator.next();
 
-	public void label(NewickTree tree, Integer key) {
-		for (String sample : snp.getSampleNames()) {
-			String nuc = snp.getSnp(key, sample);
-			String ref = snp.getReferenceSnp(key);
-			if (nuc.equals(".")) {
-				nuc = ref;
-			}
-			for (Node current : tree.getNodeList()) {
-				if (current.getName().equals(sample)) {
-					current.setLabel(key, nuc);
-					break;
-				}
-			}
-		}
-		List<Node> missingNodes = new ArrayList<Node>();
-		for (Node n : tree.getNodeList()) {
-			if (!n.getLabel().containsKey(key) && n.getChildren().isEmpty()) {
-				missingNodes.add(n);
-			}
-		}
-		if (!missingNodes.isEmpty()) {
-			// TODO: Grammatik 1 oder mehr Knoten
-			// System.err.println("Baum stimmt nicht mit SNPTable überein,
-			// Sample " + missingNodes.toString()
-			// + " sind nicht in SNP enthalten");
-		}
-	}
+            Collections.sort(arraylist);
+            int j = ((Integer)arraylist.get(arraylist.size() - 1)).intValue();
+            if(j == ((Integer)arraylist.get(0)).intValue())
+                j++;
+            Iterator iterator1 = hashmap.keySet().iterator();
+            do
+            {
+                if(!iterator1.hasNext())
+                    break;
+                String s1 = (String)iterator1.next();
+                List list = (List)hashmap.get(s1);
+                if(list.size() < j)
+                    if(list.size() == 1)
+                    {
+                        Iterator iterator2 = list.iterator();
+                        while(iterator2.hasNext()) 
+                        {
+                            Node node = (Node)iterator2.next();
+                            setClade(i, node, s1, supportTree);
+                        }
+                    } else
+                    {
+                        Iterator iterator3 = list.iterator();
+                        while(iterator3.hasNext()) 
+                        {
+                            Node node1 = (Node)iterator3.next();
+                            setClade(i, node1, s1, notSupportTree);
+                        }
+                    }
+            } while(true);
+        }
+    }
 
-	public void setClade(int key, Node node, String label, Map<Integer, HashMap<String, List<Node>>> claden) {
-		if (claden.containsKey(key)) {
-			if (claden.get(key).containsKey(label)) {
-				claden.get(key).get(label).add(node);
-			} else {
-				List<Node> split = new ArrayList<Node>();
-				split.add(node);
-				claden.get(key).put(label, split);
-			}
+    public void splitKeys(String s, boolean flag)
+    {
+        Map map;
+        if(flag)
+        {
+            for(Iterator iterator = supportTree.keySet().iterator(); iterator.hasNext();)
+            {
+                int i = ((Integer)iterator.next()).intValue();
+                Iterator iterator2 = ((HashMap)supportTree.get(Integer.valueOf(i))).keySet().iterator();
+                while(iterator2.hasNext()) 
+                {
+                    String s1 = (String)iterator2.next();
+                    Iterator iterator6 = ((List)((HashMap)supportTree.get(Integer.valueOf(i))).get(s1)).iterator();
+                    while(iterator6.hasNext()) 
+                    {
+                        Node node = (Node)iterator6.next();
+                        setInt(node.getId(), i, supportSplitKeys);
+                    }
+                }
+            }
 
-		} else {
-			HashMap<String, List<Node>> labeledNode = new HashMap<String, List<Node>>();
-			List<Node> split = new ArrayList<Node>();
-			split.add(node);
-			labeledNode.put(label, split);
-			claden.put(key, labeledNode);
-		}
-	}
+            map = supportSplitKeys;
+        } else
+        {
+            for(Iterator iterator1 = notSupportTree.keySet().iterator(); iterator1.hasNext();)
+            {
+                int j = ((Integer)iterator1.next()).intValue();
+                Iterator iterator3 = ((HashMap)notSupportTree.get(Integer.valueOf(j))).keySet().iterator();
+                while(iterator3.hasNext()) 
+                {
+                    String s2 = (String)iterator3.next();
+                    Iterator iterator7 = ((List)((HashMap)notSupportTree.get(Integer.valueOf(j))).get(s2)).iterator();
+                    while(iterator7.hasNext()) 
+                    {
+                        Node node1 = (Node)iterator7.next();
+                        setInt(node1.getId(), j, notSupportSplitKeys);
+                    }
+                }
+            }
 
-	public void getResults() {
-		toFile(filepath.createFile("claden.txt"), claden);
-		toFile(filepath.createFile("supportTree.txt"), supportTree);
-		toFile(filepath.createFile("notSupportTree.txt"), notSupportTree);
+            map = notSupportSplitKeys;
+        }
+        try
+        {
+            FileWriter filewriter = new FileWriter(s);
+            BufferedWriter bufferedwriter = new BufferedWriter(filewriter);
+            ArrayList arraylist = new ArrayList();
+            int k;
+            for(Iterator iterator4 = map.keySet().iterator(); iterator4.hasNext(); arraylist.add(Integer.valueOf(k)))
+                k = ((Integer)iterator4.next()).intValue();
 
-	}
+            Collections.sort(arraylist);
+            for(Iterator iterator5 = arraylist.iterator(); iterator5.hasNext(); bufferedwriter.write("\n"))
+            {
+                int l = ((Integer)iterator5.next()).intValue();
+                Node node2 = tree.getNode(l);
+                if(node2.getId() != tree.getRoot().getId())
+                    bufferedwriter.write((new StringBuilder()).append(node2.getParent().getId()).append("->").append(l).append("\t").toString());
+                else
+                    bufferedwriter.write((new StringBuilder()).append("Root ").append(l).append("\t").toString());
+                bufferedwriter.write((new StringBuilder()).append(((List)map.get(Integer.valueOf(l))).size()).append("\t").toString());
+                Collections.sort((List)map.get(Integer.valueOf(l)));
+                int i1;
+                for(Iterator iterator8 = ((List)map.get(Integer.valueOf(l))).iterator(); iterator8.hasNext(); bufferedwriter.write((new StringBuilder()).append(i1).append(":").append(((Set)tree.getNode(l).getLabel().get(Integer.valueOf(i1))).toString()).toString()))
+                    i1 = ((Integer)iterator8.next()).intValue();
 
-	public void toFile(String filename, Map<Integer, HashMap<String, List<Node>>> claden) {
-		FileWriter fw;
-		try {
-			fw = new FileWriter(filename);
-			BufferedWriter bw = new BufferedWriter(fw);
-			for (int i : claden.keySet()) {
-				bw.write(i + ":\n");
-				for (String l : claden.get(i).keySet()) {
-					bw.write(l + ":\n");
-					for (Node n : claden.get(i).get(l)) {
-						bw.write(n.getId() + "-" + n.getName() + "-" + n.getLabel().get(i) + getChildren(n, i) + "\n");
-					}
-				}
-				bw.write("\n");
-			}
-			bw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+            }
 
-	private String getChildren(Node n, int pos) {
-		String childrenString = ":";
-		for (Node j : n.getChildren()) {
-			childrenString += j.getId() + "-" + j.getName() + "-" + j.getLabel().get(pos) + ",";
-		}
-		if (childrenString.equals(":")) {
-			return "";
-		}
-		return childrenString.substring(0, childrenString.length() - 1);
-	}
+            bufferedwriter.close();
+        }
+        catch(IOException ioexception)
+        {
+            ioexception.printStackTrace();
+        }
+    }
 
-	public void setInt(int id, int pos, Map<Integer, List<Integer>> splitKeys) {
-		if (splitKeys.containsKey(id)) {
-			splitKeys.get(id).add(pos);
-		} else {
-			List<Integer> set = new ArrayList<Integer>();
-			set.add(pos);
-			splitKeys.put(id, set);
-		}
-	}
+    public void label(NewickTree newicktree, Integer integer)
+    {
+        Object obj = snp.getSampleNames().iterator();
+label0:
+        do
+        {
+            if(!((Iterator) (obj)).hasNext())
+                break;
+            String s = (String)((Iterator) (obj)).next();
+            String s1 = snp.getSnp(integer, s);
+            String s2 = snp.getReferenceSnp(integer);
+            if(s1.equals("."))
+                s1 = s2;
+            Iterator iterator1 = newicktree.getNodeList().iterator();
+            Node node1;
+            do
+            {
+                if(!iterator1.hasNext())
+                    continue label0;
+                node1 = (Node)iterator1.next();
+            } while(!node1.getName().equals(s));
+            node1.setLabel(integer.intValue(), s1);
+        } while(true);
+        obj = new ArrayList();
+        Iterator iterator = newicktree.getNodeList().iterator();
+        do
+        {
+            if(!iterator.hasNext())
+                break;
+            Node node = (Node)iterator.next();
+            if(!node.getLabel().containsKey(integer) && node.getChildren().isEmpty())
+                ((List) (obj)).add(node);
+        } while(true);
+        if(((List) (obj)).isEmpty());
+    }
 
-	public void showPositions(List<Integer> positions) {
-		for (int i : positions) {
-			if (snp.getSNPs().contains(i) || i == -1) {
-				showCladeAtPosition(i);
-			} else {
-				System.out.println("Position " + i + " nicht in Tabelle enthalten");
-			}
-		}
-	}
+    public void setClade(int i, Node node, String s, Map map)
+    {
+        if(map.containsKey(Integer.valueOf(i)))
+        {
+            if(((HashMap)map.get(Integer.valueOf(i))).containsKey(s))
+            {
+                ((List)((HashMap)map.get(Integer.valueOf(i))).get(s)).add(node);
+            } else
+            {
+                ArrayList arraylist = new ArrayList();
+                arraylist.add(node);
+                ((HashMap)map.get(Integer.valueOf(i))).put(s, arraylist);
+            }
+        } else
+        {
+            HashMap hashmap = new HashMap();
+            ArrayList arraylist1 = new ArrayList();
+            arraylist1.add(node);
+            hashmap.put(s, arraylist1);
+            map.put(Integer.valueOf(i), hashmap);
+        }
+    }
 
-	public void showCladeAtPosition(int pos) {
-		String filename;
-		if(pos == -1){
-			filename = filepath.createFile("IDTree.nwk");
-		}else{
-			filename = filepath.createFile("labeledTree" + pos + ".nwk");
-		}
-		
-		FileWriter fw;
-		try {
-			fw = new FileWriter(filename);
-			BufferedWriter bw = new BufferedWriter(fw);
-			bw.write(tree.toPositionString(pos, false, null));
-			bw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+    public void getResults()
+    {
+        toFile(filepath.createFile("claden.txt"), claden);
+        toFile(filepath.createFile("supportTree.txt"), supportTree);
+        toFile(filepath.createFile("notSupportTree.txt"), notSupportTree);
+    }
 
-	public void nameAndID(String filename) {
-		FileWriter fw;
-		try {
-			fw = new FileWriter(filename);
-			BufferedWriter bw = new BufferedWriter(fw);
-			for (Node i : tree.getNodeList()) {
-				if (i.getChildren().isEmpty()) {
-					bw.write(i.getId() + "\t" + i.getName() + "\n");
-				} else {
-					String childrenString = "";
-					for (Node j : i.getChildren()) {
-						childrenString += j.getId() + ",";
-					}
-					bw.write(i.getId() + "\t" + childrenString + "\n");
-				}
-			}
-			bw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+    public void toFile(String s, Map map)
+    {
+        try
+        {
+            FileWriter filewriter = new FileWriter(s);
+            BufferedWriter bufferedwriter = new BufferedWriter(filewriter);
+            for(Iterator iterator = map.keySet().iterator(); iterator.hasNext(); bufferedwriter.write("\n"))
+            {
+                int i = ((Integer)iterator.next()).intValue();
+                bufferedwriter.write((new StringBuilder()).append(i).append(":\n").toString());
+                for(Iterator iterator1 = ((HashMap)map.get(Integer.valueOf(i))).keySet().iterator(); iterator1.hasNext();)
+                {
+                    String s1 = (String)iterator1.next();
+                    bufferedwriter.write((new StringBuilder()).append(s1).append(":\n").toString());
+                    Iterator iterator2 = ((List)((HashMap)map.get(Integer.valueOf(i))).get(s1)).iterator();
+                    while(iterator2.hasNext()) 
+                    {
+                        Node node = (Node)iterator2.next();
+                        bufferedwriter.write((new StringBuilder()).append(node.getId()).append("-").append(node.getName()).append("-").append(node.getLabel().get(Integer.valueOf(i))).append(getChildren(node, i)).append("\n").toString());
+                    }
+                }
 
-	public void getUniqueSubtreeSNPs(String filename, int idSubtree) {
-		List<Node> subtreeNodes = new ArrayList<Node>();
-		Node searchSubtree = tree.getNode(idSubtree);
-		subtreeNodes = giveSubtreeNodes(searchSubtree);
-		getCommonSNP(filename, subtreeNodes);
-	}
+            }
 
-	private List<Node> giveSubtreeNodes(Node subtree) {
-		List<Node> subtreeNodelist = new ArrayList<Node>();
-		subtreeNodelist.add(subtree);
-		for (Node child : subtree.getChildren()) {
-			subtreeNodelist.addAll(giveSubtreeNodes(child));
-		}
-		return subtreeNodelist;
-	}
+            bufferedwriter.close();
+        }
+        catch(IOException ioexception)
+        {
+            ioexception.printStackTrace();
+        }
+    }
 
-	private String getStrains(int edgeend) {
-		Node subtree = tree.getNode(edgeend);
-		String allStrains = "";
-		if (subtree.getChildren().isEmpty()) {
-			return subtree.getName() + ", ";
-		} else {
-			for (Node n : subtree.getChildren()) {
-				allStrains = allStrains + getStrains(n.getId());
-			}
-		}
-		return allStrains;
-	}
+    private String getChildren(Node node, int i)
+    {
+        String s = ":";
+        for(Iterator iterator = node.getChildren().iterator(); iterator.hasNext();)
+        {
+            Node node1 = (Node)iterator.next();
+            s = (new StringBuilder()).append(s).append(node1.getId()).append("-").append(node1.getName()).append("-").append(node1.getLabel().get(Integer.valueOf(i))).append(",").toString();
+        }
 
-	/**
-	 * Sind alle Kinder eines Knotens teil der Anfrageliste, ist der Knoten ein
-	 * Vorfahre
-	 * 
-	 * @param Liste
-	 *            der Knoten der Gemeinsamkeiten
-	 * @param Knoten
-	 *            der Vorfahre sein könnte
-	 * 
-	 */
-	public void commonSNPs(List<Integer> sampleIDs) {
-		String filename = filepath.createFile("CommonSamples.txt");
-		List<Node> sampleNodes = new ArrayList<Node>();
-		List<Node> commonNodes = new ArrayList<Node>();
-		for (int i : sampleIDs) {
-			sampleNodes.add(tree.getNode(i));
-		}
+        if(s.equals(":"))
+            return "";
+        else
+            return s.substring(0, s.length() - 1);
+    }
 
-		for (Node n : sampleNodes) {
-			Node parent = n;
-			if (n.getChildren().isEmpty()) {
-				if (n.getParent() != null) {
-					while (ancestor(sampleNodes, parent.getParent())) {
-						parent = parent.getParent();
-						if (parent == null) {
-							break;
-						}
-					}
-				}
-				if (ancestor(sampleNodes, parent)) {
-					List<Node> allNodes = getAllNodesOfSubtree(parent);
-					for (Node m : allNodes) {
-						if (!commonNodes.contains(m)) {
-							commonNodes.add(m);
-						}
-					}
-				} else {
-					commonNodes.add(n);
-				}
-			} else {
-				System.out.println("Knoten " + n.getId() + " ist eine Klade kein Individuum");
-			}
-		}
-		getCommonSNP(filename, commonNodes);
+    public void setInt(int i, int j, Map map)
+    {
+        if(map.containsKey(Integer.valueOf(i)))
+        {
+            ((List)map.get(Integer.valueOf(i))).add(Integer.valueOf(j));
+        } else
+        {
+            ArrayList arraylist = new ArrayList();
+            arraylist.add(Integer.valueOf(j));
+            map.put(Integer.valueOf(i), arraylist);
+        }
+    }
 
-	}
+    public void showPositions(List list)
+    {
+        for(Iterator iterator = list.iterator(); iterator.hasNext();)
+        {
+            int i = ((Integer)iterator.next()).intValue();
+            if(snp.getSNPs().contains(Integer.valueOf(i)) || i == -1)
+                showCladeAtPosition(i);
+            else
+                System.out.println((new StringBuilder()).append("Position ").append(i).append(" not found in table.").toString());
+        }
 
-	public void getCommonSNP(String filename, List<Node> nodeList) {
-		try {
-			FileWriter fw = new FileWriter(filename);
-			BufferedWriter bw = new BufferedWriter(fw);
-			bw.write(">SupportTreeSNPs\n");
-			List<Integer> posList = new ArrayList<Integer>(supportTree.keySet());
-			Collections.sort(posList);
-			String allStrains = "";
-			for (int k : posList) {
-				for (String s : supportTree.get(k).keySet()) {
-					for (Node m : supportTree.get(k).get(s)) {
-						if (nodeList.contains(m)) {
-							if (m.getChildren().isEmpty()) {
-								bw.write(k + "\t" + s + "\t" + m.getName() + "\n");
-							} else {
-								allStrains = getStrains(m.getId());
-								bw.write(k + "\t" + s + "\t" + allStrains.substring(0, allStrains.length() - 2) + "\n");
-							}
+    }
 
-						}
-					}
-				}
-			}
-			bw.write(">NotSupportTreeSNPs\n");
-			posList = new ArrayList<Integer>(notSupportTree.keySet());
-			Collections.sort(posList);
-			allStrains = "";
-			for (int k : posList) {
-				for (String s : notSupportTree.get(k).keySet()) {
-					if (nodeList.containsAll(notSupportTree.get(k).get(s))) {
-						for (Node m : notSupportTree.get(k).get(s)) {
-							allStrains = allStrains + getStrains(m.getId());
-						}
-						bw.write(k + "\t" + s + "\t" + allStrains.substring(0, allStrains.length() - 2) + "\n");
-					}
-				}
-			}
-			bw.close();
-		} catch (IOException e) {
+    public void showCladeAtPosition(int i)
+    {
+        String s;
+        if(i == -1)
+            s = filepath.createFile("IDTree.nwk");
+        else
+            s = filepath.createFile((new StringBuilder()).append("labeledTree").append(i).append(".nwk").toString());
+        try
+        {
+            FileWriter filewriter = new FileWriter(s);
+            BufferedWriter bufferedwriter = new BufferedWriter(filewriter);
+            bufferedwriter.write(tree.toPositionString(i, false, null));
+            bufferedwriter.close();
+        }
+        catch(IOException ioexception)
+        {
+            ioexception.printStackTrace();
+        }
+    }
 
-		}
-	}
+    public void nameAndID(String s)
+    {
+        try
+        {
+            FileWriter filewriter = new FileWriter(s);
+            BufferedWriter bufferedwriter = new BufferedWriter(filewriter);
+            for(Iterator iterator = tree.getNodeList().iterator(); iterator.hasNext();)
+            {
+                Node node = (Node)iterator.next();
+                if(node.getChildren().isEmpty())
+                {
+                    bufferedwriter.write((new StringBuilder()).append(node.getId()).append("\t").append(node.getName()).append("\n").toString());
+                } else
+                {
+                    String s1 = "";
+                    for(Iterator iterator1 = node.getChildren().iterator(); iterator1.hasNext();)
+                    {
+                        Node node1 = (Node)iterator1.next();
+                        s1 = (new StringBuilder()).append(s1).append(node1.getId()).append(",").toString();
+                    }
 
-	/**
-	 * Sind alle Kinder eines Knotens teil der Anfrageliste, ist der Knoten ein
-	 * Vorfahre
-	 * 
-	 * @param Liste
-	 *            der Knoten der Gemeinsamkeiten
-	 * @param Knoten
-	 *            der Vorfahre sein könnte
-	 * 
-	 */
-	public boolean ancestor(List<Node> nodeList, Node ancestor) {
+                    bufferedwriter.write((new StringBuilder()).append(node.getId()).append("\t").append(s1).append("\n").toString());
+                }
+            }
 
-		boolean allChildren = true;
-		for (Node n : ancestor.getChildren()) {
-			// Ist ein Blatt nicht in der Liste enthalten, wird der Knoten nicht
-			// in die Liste aufgenommen
-			if (!allChildren) {
-				break;
-			}
-			// Liegt ein Blatt vor wird die Liste durchsucht
-			if (n.getChildren().isEmpty()) {
-				boolean inList = false;
-				for (Node m : nodeList) {
-					inList = n.getId() == m.getId();
-					// Stimmt ein Knoten der Liste überein wird die Suche
-					// abgebrochen
-					if (inList) {
-						break;
-					}
-				}
-				// Ist der Knoten nicht enthalten wird sind nicht alle Knoten
-				// enthalten
-				if (!inList) {
-					allChildren = false;
-				}
-			} else {
-				// Ist das Kind ein innerer Knoten werden die Kinder dieses
-				// Knotens betrachtet
-				allChildren = ancestor(nodeList, n);
-			}
-		}
-		return allChildren;
-	}
+            bufferedwriter.close();
+        }
+        catch(IOException ioexception)
+        {
+            ioexception.printStackTrace();
+        }
+    }
 
-	/**
-	 * Erhält einen Knoten und gibt eine Liste aller Knoten des Teilbaums zurück
-	 * 
-	 * @param Wurzel
-	 *            des Teilbaums
-	 */
-	public List<Node> getAllNodesOfSubtree(Node n) {
-		List<Node> listOfNodes = new ArrayList<Node>();
-		// Keine Kinder füge nur den Knoten der Liste hinzu
-		if (n.getChildren().isEmpty()) {
-			listOfNodes.add(n);
-		} else {
-			// füge die Knotenlisten der Kinder hinzu
-			listOfNodes.add(n);
-			for (Node m : n.getChildren()) {
-				listOfNodes.addAll(getAllNodesOfSubtree(m));
-			}
-		}
-		return listOfNodes;
-	}
+    public void getUniqueSubtreeSNPs(String s, int i)
+    {
+        Object obj = new ArrayList();
+        Node node = tree.getNode(i);
+        obj = giveSubtreeNodes(node);
+        getCommonSNP(s, ((List) (obj)));
+    }
 
-	/**
-	 * Gibt einen Newick-String aus, der nur die Kladenallele und die
-	 * Blattallele enthalten
-	 * 
-	 * @param SNP-Position
-	 * 
-	 */
-	public void treeSNPs(int pos) {
-		List<Node> nodeList = tree.getNodeList();
-		for (Node m : nodeList) {
-			m.setPosSNP(null);
-		}
-		Node subroot = nodeList.get(0);
-		while (subroot.getParent() != null) {
-			subroot = subroot.getParent();
-		}
-		try {
+    private List giveSubtreeNodes(Node node)
+    {
+        ArrayList arraylist = new ArrayList();
+        arraylist.add(node);
+        Node node1;
+        for(Iterator iterator = node.getChildren().iterator(); iterator.hasNext(); arraylist.addAll(giveSubtreeNodes(node1)))
+            node1 = (Node)iterator.next();
 
-			HashMap<String, List<Node>> treeSNP = new HashMap<String, List<Node>>();
-			if (supportTree.containsKey(pos)) {
-				treeSNP = supportTree.get(pos);
-			}
+        return arraylist;
+    }
 
-			if (notSupportTree.containsKey(pos)) {
-				treeSNP.putAll(notSupportTree.get(pos));
-			}
-			if (treeSNP.isEmpty()) {
-				System.err.println("Kein Key mit dem Wert " + pos + " in notSupportTree und SupportTree enthalten.");
-			} else {
-				String filename = filepath.createFile("Clade-Tree" + pos + ".nwk");
-				FileWriter fw;
-				fw = new FileWriter(filename);
-				for (String s : treeSNP.keySet()) {
-					for (Node n : treeSNP.get(s)) {
-						for (Node l : nodeList) {
-							if (n.getId() == l.getId()) {
-								l.setPosSNP(s);
-								break;
-							}
-						}
-					}
-				}
-				BufferedWriter bw = new BufferedWriter(fw);
-				bw.write(tree.toPositionString(pos, true, subroot));
-				bw.close();
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+    private String getStrains(int i)
+    {
+        Node node = tree.getNode(i);
+        String s = "";
+        if(node.getChildren().isEmpty())
+            return (new StringBuilder()).append(node.getName()).append(", ").toString();
+        for(Iterator iterator = node.getChildren().iterator(); iterator.hasNext();)
+        {
+            Node node1 = (Node)iterator.next();
+            s = (new StringBuilder()).append(s).append(getStrains(node1.getId())).toString();
+        }
 
-	public NewFile getFilepath() {
-		return filepath;
-	}
+        return s;
+    }
 
-	public Map<Integer, HashMap<String, List<Node>>> getSupportTree() {
-		return supportTree;
-	}
+    public void commonSNPs(List list)
+    {
+        String s = filepath.createFile("CommonSamples.txt");
+        ArrayList arraylist = new ArrayList();
+        ArrayList arraylist1 = new ArrayList();
+        int i;
+        for(Iterator iterator = list.iterator(); iterator.hasNext(); arraylist.add(tree.getNode(i)))
+            i = ((Integer)iterator.next()).intValue();
 
+        Iterator iterator1 = arraylist.iterator();
+label0:
+        do
+        {
+            if(!iterator1.hasNext())
+                break;
+            Node node = (Node)iterator1.next();
+            Node node1 = node;
+            if(node.getChildren().isEmpty())
+            {
+                if(node.getParent() != null)
+                    do
+                    {
+                        if(!ancestor(arraylist, node1.getParent()))
+                            break;
+                        node1 = node1.getParent();
+                    } while(node1 != null);
+                if(ancestor(arraylist, node1))
+                {
+                    List list1 = getAllNodesOfSubtree(node1);
+                    Iterator iterator2 = list1.iterator();
+                    do
+                    {
+                        Node node2;
+                        do
+                        {
+                            if(!iterator2.hasNext())
+                                continue label0;
+                            node2 = (Node)iterator2.next();
+                        } while(arraylist1.contains(node2));
+                        arraylist1.add(node2);
+                    } while(true);
+                }
+                arraylist1.add(node);
+            } else
+            {
+                System.out.println((new StringBuilder()).append("Knoten ").append(node.getId()).append(" ist eine Klade kein Individuum").toString());
+            }
+        } while(true);
+        getCommonSNP(s, arraylist1);
+    }
+
+    public void getCommonSNP(String s, List list)
+    {
+        try
+        {
+            FileWriter filewriter = new FileWriter(s);
+            BufferedWriter bufferedwriter = new BufferedWriter(filewriter);
+            bufferedwriter.write(">SupportTreeSNPs\n");
+            ArrayList arraylist = new ArrayList(supportTree.keySet());
+            Collections.sort(arraylist);
+            String s1 = "";
+            for(Iterator iterator = arraylist.iterator(); iterator.hasNext();)
+            {
+                int i = ((Integer)iterator.next()).intValue();
+                Iterator iterator2 = ((HashMap)supportTree.get(Integer.valueOf(i))).keySet().iterator();
+                while(iterator2.hasNext()) 
+                {
+                    String s2 = (String)iterator2.next();
+                    Iterator iterator4 = ((List)((HashMap)supportTree.get(Integer.valueOf(i))).get(s2)).iterator();
+                    while(iterator4.hasNext()) 
+                    {
+                        Node node = (Node)iterator4.next();
+                        if(list.contains(node))
+                            if(node.getChildren().isEmpty())
+                            {
+                                bufferedwriter.write((new StringBuilder()).append(i).append("\t").append(s2).append("\t").append(node.getName()).append("\n").toString());
+                            } else
+                            {
+                                s1 = getStrains(node.getId());
+                                bufferedwriter.write((new StringBuilder()).append(i).append("\t").append(s2).append("\t").append(s1.substring(0, s1.length() - 2)).append("\n").toString());
+                            }
+                    }
+                }
+            }
+
+            bufferedwriter.write(">NotSupportTreeSNPs\n");
+            arraylist = new ArrayList(notSupportTree.keySet());
+            Collections.sort(arraylist);
+            s1 = "";
+            for(Iterator iterator1 = arraylist.iterator(); iterator1.hasNext();)
+            {
+                int j = ((Integer)iterator1.next()).intValue();
+                Iterator iterator3 = ((HashMap)notSupportTree.get(Integer.valueOf(j))).keySet().iterator();
+                while(iterator3.hasNext()) 
+                {
+                    String s3 = (String)iterator3.next();
+                    if(list.containsAll((Collection)((HashMap)notSupportTree.get(Integer.valueOf(j))).get(s3)))
+                    {
+                        for(Iterator iterator5 = ((List)((HashMap)notSupportTree.get(Integer.valueOf(j))).get(s3)).iterator(); iterator5.hasNext();)
+                        {
+                            Node node1 = (Node)iterator5.next();
+                            s1 = (new StringBuilder()).append(s1).append(getStrains(node1.getId())).toString();
+                        }
+
+                        bufferedwriter.write((new StringBuilder()).append(j).append("\t").append(s3).append("\t").append(s1.substring(0, s1.length() - 2)).append("\n").toString());
+                    }
+                }
+            }
+
+            bufferedwriter.close();
+        }
+        catch(IOException ioexception) { }
+    }
+
+    public boolean ancestor(List list, Node node)
+    {
+        boolean flag = true;
+        Iterator iterator = node.getChildren().iterator();
+        do
+        {
+            if(!iterator.hasNext())
+                break;
+            Node node1 = (Node)iterator.next();
+            if(!flag)
+                break;
+            if(node1.getChildren().isEmpty())
+            {
+                boolean flag1 = false;
+                Iterator iterator1 = list.iterator();
+                do
+                {
+                    if(!iterator1.hasNext())
+                        break;
+                    Node node2 = (Node)iterator1.next();
+                    flag1 = node1.getId() == node2.getId();
+                } while(!flag1);
+                if(!flag1)
+                    flag = false;
+            } else
+            {
+                flag = ancestor(list, node1);
+            }
+        } while(true);
+        return flag;
+    }
+
+    public List getAllNodesOfSubtree(Node node)
+    {
+        ArrayList arraylist = new ArrayList();
+        if(node.getChildren().isEmpty())
+        {
+            arraylist.add(node);
+        } else
+        {
+            arraylist.add(node);
+            Node node1;
+            for(Iterator iterator = node.getChildren().iterator(); iterator.hasNext(); arraylist.addAll(getAllNodesOfSubtree(node1)))
+                node1 = (Node)iterator.next();
+
+        }
+        return arraylist;
+    }
+
+    public void treeSNPs(int i)
+    {
+label0:
+        {
+            List list = tree.getNodeList();
+            Node node1;
+            for(Iterator iterator = list.iterator(); iterator.hasNext(); node1.setPosSNP(null))
+                node1 = (Node)iterator.next();
+
+            Node node;
+            for(node = (Node)list.get(0); node.getParent() != null; node = node.getParent());
+            try
+            {
+                HashMap hashmap = new HashMap();
+                if(supportTree.containsKey(Integer.valueOf(i)))
+                    hashmap = (HashMap)supportTree.get(Integer.valueOf(i));
+                if(notSupportTree.containsKey(Integer.valueOf(i)))
+                    hashmap.putAll((Map)notSupportTree.get(Integer.valueOf(i)));
+                if(hashmap.isEmpty())
+                {
+                    System.err.println((new StringBuilder()).append("Kein Key mit dem Wert ").append(i).append(" in notSupportTree und SupportTree enthalten.").toString());
+                    break label0;
+                }
+                String s = filepath.createFile((new StringBuilder()).append("Clade-Tree").append(i).append(".nwk").toString());
+                FileWriter filewriter = new FileWriter(s);
+                Object obj = hashmap.keySet().iterator();
+                do
+                {
+                    if(!((Iterator) (obj)).hasNext())
+                        break;
+                    String s1 = (String)((Iterator) (obj)).next();
+                    Iterator iterator1 = ((List)hashmap.get(s1)).iterator();
+label1:
+                    do
+                    {
+                        if(!iterator1.hasNext())
+                            break;
+                        Node node2 = (Node)iterator1.next();
+                        Iterator iterator2 = list.iterator();
+                        Node node3;
+                        do
+                        {
+                            if(!iterator2.hasNext())
+                                continue label1;
+                            node3 = (Node)iterator2.next();
+                        } while(node2.getId() != node3.getId());
+                        node3.setPosSNP(s1);
+                    } while(true);
+                } while(true);
+                obj = new BufferedWriter(filewriter);
+                ((BufferedWriter) (obj)).write(tree.toPositionString(i, true, node));
+                ((BufferedWriter) (obj)).close();
+            }
+            catch(IOException ioexception)
+            {
+                ioexception.printStackTrace();
+            }
+        }
+    }
+
+    public NewFile getFilepath()
+    {
+        return filepath;
+    }
+
+    public Map getSupportTree()
+    {
+        return supportTree;
+    }
+
+    public SNPTable snp;
+    private NewickTree tree;
+    private NewFile filepath;
+    private Map claden;
+    private Map supportTree;
+    private Map notSupportTree;
+    private Map supportSplitKeys;
+    private Map notSupportSplitKeys;
 }

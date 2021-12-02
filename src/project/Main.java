@@ -1,41 +1,33 @@
+// Decompiled by Jad v1.5.8e. Copyright 2001 Pavel Kouznetsov.
+// Jad home page: http://www.geocities.com/kpdus/jad.html
+// Decompiler options: packimports(3) 
+// Source File Name:   Main.java
+
 package project;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.PrintStream;
 
-/**
- * @author Katrin Fischer
- *
- */
-public class Main {
-	public static void main(String[] args0) throws IOException{
-		if(args0.length == 3) {
-			Project comcla = new Project(args0[0], args0[1], args0[2]);
-			comcla.compute();
-			comcla.getResults();
-			//SNP-Positionen deren Baum ausgegeben werden soll mit allen Nukleotiden der einen Position
-			List<Integer> l = new ArrayList<Integer>();
-			l.add(-1);
-			l.add(3125);
-			l.add(15282);
-			comcla.showPositions(l);
-			// Einzigartige SNPs f�r einen Teilbaum
-			comcla.getUniqueSubtreeSNPs(comcla.getFilepath().createFile("UniqueSubTree.txt"), 13);
-			// Zeige Baum mit Kladenallelen
-			List<Integer> j = new ArrayList<Integer>();
-            l.add(-1);
-            comcla.showPositions(j);
-//			for(int i : comcla.snp.getSNPs()){
-//				comcla.treeSNPs(i);
-//			}
-			// Einzigartige SNPs f�r mehrere verschiedene Individuen
-			List<Integer> k = new ArrayList<Integer>();
-			k.add(1);
-			k.add(6);
-			comcla.commonSNPs(k);
-		}else {
-			System.err.println("Falsche Eingabeparameter: [SNP-Tabelle] [Newick-Datei] [Ergebnispfad]");
-		}
-	}
+// Referenced classes of package project:
+//            Project
+
+public class Main
+{
+
+    public Main()
+    {
+    }
+
+    public static void main(String args[])
+        throws IOException
+    {
+        if(args.length == 3)
+        {
+            Project project = new Project(args[0], args[1], args[2]);
+            project.compute();
+        } else
+        {
+            System.err.println("Wrong input arguments: [SNP-Table] [Newick-file] [Output directory]");
+        }
+    }
 }
