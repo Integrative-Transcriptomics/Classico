@@ -11,22 +11,17 @@ import java.io.PrintStream;
 // Referenced classes of package project:
 //            Project
 
-public class Main
-{
+public class Main {
 
-    public Main()
-    {
+    public Main() {
     }
 
     public static void main(String args[])
-        throws IOException
-    {
-        if(args.length == 3)
-        {
+            throws IOException {
+        if (args.length == 3) {
             Project project = new Project(args[0], args[1], args[2]);
             project.compute();
-        } else
-        {
+        } else {
             System.err.println("Wrong input arguments: [SNP-Table] [Newick-file] [Output directory]");
         }
     }
