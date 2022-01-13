@@ -9,7 +9,7 @@ CLASSICO is a tool for propagating SNPs along a Newick tree. The tool extracts t
 ## Ouptut files
 - supportSplitKeys.txt: List of supporting SNPs
 - notSupportSplitKeys.txt: List of non-supporting SNPs
-- IDdistribution.txt: Distribution of SNPs on tree nodes
+- IDdistribution.txt: Distribution of internal IDs to taxa labels
 
 ## Compilation: 
 `cd src`
