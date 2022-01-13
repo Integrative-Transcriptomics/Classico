@@ -108,7 +108,7 @@ public class Project {
                     break;
                 String s1 = (String) iterator1.next();
                 List list = (List) hashmap.get(s1);
-                if (!"[.]".equals(s1) & !"[N]".equals(s1))
+                if (!"[.]".equals(s1))
                     if (list.size() == 1) {
                         Iterator iterator2 = list.iterator();
                         while (iterator2.hasNext()) {
