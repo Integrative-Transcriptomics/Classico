@@ -12,35 +12,36 @@ import java.util.*;
 public class Project {
 
     public Project(String s, String s1, String s2) {
-        claden = new HashMap();
+        cladenGlobalHashMap = new HashMap();
         supportTree = new HashMap();
         notSupportTree = new HashMap();
         supportSplitKeys = new HashMap();
         notSupportSplitKeys = new HashMap();
-        snp = new SNPTable(s);
+        mainSNPHashMap = new SNPTable(s);
         tree = new NewickTree(s1);
         filepath = new NewFile(s2);
         // filepath.createDir("Ergebnis");
     }
 
     public Project(SNPTable snptable, NewickTree newicktree, String s) {
-        claden = new HashMap();
+        cladenGlobalHashMap = new HashMap();
         supportTree = new HashMap();
         notSupportTree = new HashMap();
         supportSplitKeys = new HashMap();
         notSupportSplitKeys = new HashMap();
-        snp = snptable;
+        mainSNPHashMap = snptable;
         tree = newicktree;
         filepath = new NewFile(s);
         // filepath.createDir("Ergebnis");
     }
 
     public void compute() {
-        int i;
-        for (Iterator iterator = snp.getSNPs().iterator(); iterator.hasNext(); evaluateCladen(i)) {
-            i = ((Integer) iterator.next()).intValue();
-            label(tree, Integer.valueOf(i));
-            computeCladen(tree.getRoot(), i, true);
+        int snpPosition;
+        for (Iterator snpIterator = mainSNPHashMap.getSNPs().iterator(); snpIterator
+                .hasNext(); evaluateCladen(snpPosition)) {
+            snpPosition = ((Integer) snpIterator.next()).intValue();
+            label(tree, Integer.valueOf(snpPosition));
+            computeCladen(tree.getRoot(), snpPosition, true);
         }
 
         splitKeys(filepath.createFile("supportSplitKeys.txt"), true);
@@ -48,16 +49,28 @@ public class Project {
         nameAndID(filepath.createFile("IDdistribution.txt"));
     }
 
-    public void computeCladen(Node node, int i, boolean flag) {
-        if (node.getLabel().containsKey(Integer.valueOf(i))) {
-            Set set = (Set) node.getLabel().get(Integer.valueOf(i));
+    /**
+     * TODO: THIS IS THE FUNCTION THAT NEEDS TO BE CHANGED
+     * 
+     * @param currentCladeRoot
+     * @param snpPosition
+     * @param flag
+     */
+    public void computeCladen(Node currentCladeRoot, int snpPosition, boolean flag) {
+        if (currentCladeRoot.getLabel().containsKey(Integer.valueOf(snpPosition))) {
+            // TODO: Take a look if we can avoid this set
+            Object tempList = currentCladeRoot.getLabel().get(Integer.valueOf(snpPosition));
+            // System.out.println(tempList);
+            Set set = (Set) tempList;
+            // System.out.println(currentCladeRoot.getLabel().get(Integer.valueOf(snpPosition)));
+            // System.out.println("I am here" + set);
             switch (set.size()) {
                 case 0: // '\0'
                     System.err.println("Project:86 - Key is given, but no string provided");
                     break;
 
                 case 1: // '\001'
-                    setClade(i, node, set.toString(), claden);
+                    setClade(snpPosition, currentCladeRoot, set.toString(), cladenGlobalHashMap);
                     break;
 
                 // case 2: // '\002'
@@ -72,10 +85,11 @@ public class Project {
                 // // fall through
 
                 default:
-                    if (!node.getChildren().isEmpty()) {
+                    if (!currentCladeRoot.getChildren().isEmpty()) {
                         Node node1;
-                        for (Iterator iterator = node.getChildren().iterator(); iterator.hasNext(); computeCladen(node1,
-                                i, flag))
+                        for (Iterator iterator = currentCladeRoot.getChildren().iterator(); iterator
+                                .hasNext(); computeCladen(node1,
+                                        snpPosition, flag))
                             node1 = (Node) iterator.next();
 
                     } else {
@@ -84,46 +98,209 @@ public class Project {
                     break;
             }
         } else {
-            System.err.println((new StringBuilder()).append("Project:130 - Key not found").append(i).append("_")
-                    .append(node.getId()).append("_").append(node.getName()).toString());
+            System.err.println((new StringBuilder()).append("Project:130 - Key not found").append(snpPosition)
+                    .append("_")
+                    .append(currentCladeRoot.getId()).append("_").append(currentCladeRoot.getName()).toString());
         }
     }
 
-    public void evaluateCladen(int i) {
-        HashMap hashmap = (HashMap) claden.get(Integer.valueOf(i));
-        ArrayList arraylist = new ArrayList();
+    /**
+     * 
+     * This recieves already the computed clade.
+     * It is executed at the end of each iteration in a for loop
+     * 
+     * @param snpPosition
+     */
+    public void evaluateCladen(int snpPosition) {
+        HashMap hashmap = (HashMap) cladenGlobalHashMap.get(Integer.valueOf(snpPosition));
+        ArrayList countsAllelesFromSet = new ArrayList();
         if (hashmap != null) {
             String s;
-            for (Iterator iterator = hashmap.keySet().iterator(); iterator.hasNext(); arraylist
+            for (Iterator iterator = hashmap.keySet().iterator(); iterator.hasNext(); countsAllelesFromSet
                     .add(Integer.valueOf(((List) hashmap.get(s)).size())))
                 s = (String) iterator.next();
-
+            // System.out.println(countsAllelesFromSet);
             // Collections.sort(arraylist);
-            int j = ((Integer) arraylist.get(arraylist.size() - 1)).intValue();
-            if (j == ((Integer) arraylist.get(0)).intValue())
+            int j = ((Integer) countsAllelesFromSet.get(countsAllelesFromSet.size() - 1)).intValue();
+            if (j == ((Integer) countsAllelesFromSet.get(0)).intValue())
                 j++;
-            Iterator iterator1 = hashmap.keySet().iterator();
+            Iterator SNPAlleleIterator = hashmap.keySet().iterator();
             do {
-                if (!iterator1.hasNext())
+                if (!SNPAlleleIterator.hasNext())
                     break;
-                String s1 = (String) iterator1.next();
-                List list = (List) hashmap.get(s1);
-                if (!"[.]".equals(s1))
-                    if (list.size() == 1) {
-                        Iterator iterator2 = list.iterator();
-                        while (iterator2.hasNext()) {
-                            Node node = (Node) iterator2.next();
-                            setClade(i, node, s1, supportTree);
+                String SNPAllele = (String) SNPAlleleIterator.next();
+
+                // System.out.println("test S1: " + SNPAllele);
+                List nodesWithSNP = (List) hashmap.get(SNPAllele);
+                // System.out.println(nodesWithSNP);
+                if (!"[.]".equals(SNPAllele))
+                    if (nodesWithSNP.size() == 1) {
+                        Iterator nodesIteratorSupport = nodesWithSNP.iterator();
+                        while (nodesIteratorSupport.hasNext()) {
+                            Node node = (Node) nodesIteratorSupport.next();
+                            setClade(snpPosition, node, SNPAllele, supportTree);
                         }
                     } else {
-                        Iterator iterator3 = list.iterator();
-                        while (iterator3.hasNext()) {
-                            Node node1 = (Node) iterator3.next();
-                            setClade(i, node1, s1, notSupportTree);
+                        Iterator nodesIteratorPossiblyNotSupport = nodesWithSNP.iterator();
+                        // TODO: could we include here a check of the distribution among the tree?
+                        System.out.println(snpPosition);
+                        System.out.println(SNPAllele);
+                        List recheckDistribution = new ArrayList(nodesWithSNP);
+                        boolean recheckSupportTree = checkCentipede(recheckDistribution,
+                                tree.getRoot());
+                        System.out.println(recheckSupportTree);
+                        // This iterator referes to the one used to write down the SNPs
+                        Iterator nodesIteratorPossiblyNotSupportWrite = nodesWithSNP.iterator();
+
+                        while (nodesIteratorPossiblyNotSupportWrite.hasNext()) {
+                            Node node1 = (Node) nodesIteratorPossiblyNotSupportWrite.next();
+                            if (recheckSupportTree) {
+                                setClade(snpPosition, node1, SNPAllele, supportTree);
+
+                            } else {
+                                setClade(snpPosition, node1, SNPAllele, notSupportTree);
+
+                            }
+
                         }
                     }
             } while (true);
         }
+    }
+
+    class RecursionInformation {
+        boolean isSupportive;
+        List nodesToSearch;
+        List foundNodes;
+        Integer passedInternal;
+
+        RecursionInformation(boolean supportive, List toSearch, List found, Integer internalCount) {
+            isSupportive = supportive;
+            nodesToSearch = toSearch;
+            foundNodes = found;
+            passedInternal = internalCount;
+        }
+    }
+
+    /**
+     * Trying to implement a test to catch the centipede example,
+     * where one single mutation could make a whole allele non-supporting.
+     * 
+     * @param nodesToTest: list of nodes that should be tested
+     * @param rootNode:    start of the tree
+     * @return should the node be labelled as supporting?
+     */
+    public boolean checkCentipede(List nodesToTest, Node rootNode) {
+        List nodesToTestList = nodesToTest;
+        List collectedParent = new ArrayList();
+        RecursionInformation startRecursion = new RecursionInformation(false, nodesToTestList, collectedParent, 0);
+        RecursionInformation result = checkCentipedeHelper(startRecursion, rootNode);
+        System.out.println(result.passedInternal);
+        return result.isSupportive && result.passedInternal < 3;
+    }
+    /*
+     * public boolean checkCentipedeHelper(List nodesLeft, List collectedNodes, Node
+     * currentCladeRoot) {
+     * List nodesIncoming = new ArrayList<>(nodesLeft);
+     * // List nodesIncoming = nodesLeft;
+     * 
+     * Integer nodesIncomingSize = nodesLeft.size();
+     * // System.out.println(nodesIncoming);
+     * boolean foundInList = nodesLeft.contains(currentCladeRoot);
+     * 
+     * if (foundInList) {
+     * nodesIncoming.remove(currentCladeRoot);
+     * collectedNodes.add(currentCladeRoot);
+     * }
+     * System.out.println(nodesIncoming);
+     * 
+     * if (nodesIncoming.size() == 0) {
+     * return true;
+     * } else if (currentCladeRoot.getChildren().size() == 0) {
+     * return false;
+     * } else if (nodesIncoming.size() == nodesIncomingSize & collectedNodes.size()
+     * > 0) {
+     * return false;
+     * } else {
+     * boolean childResult = false;
+     * Iterator childrenOfNode = currentCladeRoot.getChildren().iterator();
+     * while (childrenOfNode.hasNext()) {
+     * Node newChild = (Node) childrenOfNode.next();
+     * System.out.println(nodesIncoming);
+     * List nodesLeftChild = new ArrayList<>(nodesIncoming);
+     * System.out.println(nodesLeftChild);
+     * childResult = checkCentipedeHelper(nodesLeftChild, collectedNodes, newChild);
+     * if (childResult) {
+     * break;
+     * }
+     * }
+     * 
+     * return childResult;
+     * }
+     * }
+     */
+
+    public RecursionInformation checkCentipedeHelper(RecursionInformation recursionState, Node currentCladeRoot) {
+        List nodesLeft = recursionState.nodesToSearch;
+        Integer recursiveCount = recursionState.passedInternal;
+        // System.out.println(nodesLeft);
+        List collectedNodes = new ArrayList(recursionState.foundNodes);
+        List nodesIncoming = new ArrayList(nodesLeft);
+        // List nodesIncoming = nodesLeft;
+        // System.out.println(nodesIncoming);
+        boolean foundInList = nodesLeft.contains(currentCladeRoot);
+        boolean isLeaf = currentCladeRoot.getChildren().size() == 0;
+        if (foundInList) {
+            recursiveCount = collectedNodes.size() > 0 ? recursiveCount - collectedNodes.size() : isLeaf ? 0 : 1;
+            nodesIncoming.remove(currentCladeRoot);
+            collectedNodes.add(currentCladeRoot);
+            return new RecursionInformation(nodesIncoming.size() == 0, nodesIncoming, collectedNodes, recursiveCount);
+        }
+        // System.out.println(nodesIncoming);
+        else {
+            if (isLeaf) {
+                return new RecursionInformation(false, nodesIncoming, collectedNodes, recursiveCount);
+            } else {
+
+                List childrenOfNodeList = currentCladeRoot.getChildren();
+                // System.out.println(childrenOfNodeList);
+                Collections.sort(childrenOfNodeList,
+                        (Node node1, Node node2) -> node1.getChildren().size() - (node2.getChildren().size()));
+                Collections.reverse(childrenOfNodeList);
+                // System.out.println(childrenOfNodeList);
+                Iterator childrenOfNode = childrenOfNodeList.iterator();
+                List nodesLeftChild = new ArrayList(nodesIncoming);
+                RecursionInformation returnedChild = new RecursionInformation(false, nodesLeftChild, collectedNodes,
+                        recursiveCount);
+                while (childrenOfNode.hasNext()) {
+
+                    Node newChild = (Node) childrenOfNode.next();
+                    RecursionInformation giveToChild = new RecursionInformation(false, nodesLeftChild, collectedNodes,
+                            recursiveCount);
+                    returnedChild = checkCentipedeHelper(giveToChild, newChild);
+
+                    boolean childResult = returnedChild.isSupportive;
+                    // checkCentipedeHelper(nodesLeftChild, collectedNodes, newChild);
+                    if (childResult) {
+                        break;
+                    }
+                    nodesLeftChild = returnedChild.nodesToSearch;
+                    collectedNodes = returnedChild.foundNodes;
+                    recursiveCount = returnedChild.passedInternal;
+                }
+                if (collectedNodes.size() > 0) {
+                    returnedChild.passedInternal = recursiveCount + 1;
+
+                }
+                return returnedChild;
+            }
+        }
+    }
+
+    public List getListFromIterator(Iterator nodesToTest) {
+        List deiteratedList = new ArrayList();
+        nodesToTest.forEachRemaining(deiteratedList::add);
+        return deiteratedList;
     }
 
     public void splitKeys(String s, boolean flag) {
@@ -194,35 +371,51 @@ public class Project {
         }
     }
 
-    public void label(NewickTree newicktree, Integer integer) {
-        Object obj = snp.getSampleNames().iterator();
+    /**
+     * TODO: WHAT DOES THIS FUNCTION DO?
+     * 
+     * 
+     * TODO: THIS IS I THINK THE FORWARD PASS OF PARSIMONY
+     * 
+     * @param newicktree
+     * @param snpPosition
+     */
+    public void label(NewickTree newicktree, Integer snpPosition) {
+        Object taxaNameCollector = mainSNPHashMap.getSampleNames().iterator();
+
+        // So this first part is filling the nodes of the newick with the information of
+        // the SNP table
+
         label0: do {
-            if (!((Iterator) (obj)).hasNext())
+            if (!((Iterator) (taxaNameCollector)).hasNext())
                 break;
-            String s = (String) ((Iterator) (obj)).next();
-            String s1 = snp.getSnp(integer, s);
-            String s2 = snp.getReferenceSnp(integer);
+            String taxaName = (String) ((Iterator) (taxaNameCollector)).next();
+            String currentAlleleSNP = mainSNPHashMap.getSnp(snpPosition, taxaName);
+            String referenceSNP = mainSNPHashMap.getReferenceSnp(snpPosition);
             // if (s1.equals(s2))
             // s1 = ".";
-            Iterator iterator1 = newicktree.getNodeList().iterator();
-            Node node1;
+            Iterator treeIterator = newicktree.getNodeList().iterator();
+            Node nodeOfNewickTree;
+            // Find which node in the tree is being handled here
             do {
-                if (!iterator1.hasNext())
+                if (!treeIterator.hasNext())
                     continue label0;
-                node1 = (Node) iterator1.next();
-            } while (!node1.getName().equals(s));
-            node1.setLabel(integer.intValue(), s1);
+                nodeOfNewickTree = (Node) treeIterator.next();
+            } while (!nodeOfNewickTree.getName().equals(taxaName));
+            nodeOfNewickTree.setLabel(snpPosition.intValue(), currentAlleleSNP);
         } while (true);
-        obj = new ArrayList();
-        Iterator iterator = newicktree.getNodeList().iterator();
+
+        // Now
+        taxaNameCollector = new ArrayList();
+        Iterator secondNewickIterator = newicktree.getNodeList().iterator();
         do {
-            if (!iterator.hasNext())
+            if (!secondNewickIterator.hasNext())
                 break;
-            Node node = (Node) iterator.next();
-            if (!node.getLabel().containsKey(integer) && node.getChildren().isEmpty())
-                ((List) (obj)).add(node);
+            Node node = (Node) secondNewickIterator.next();
+            if (!node.getLabel().containsKey(snpPosition) && node.getChildren().isEmpty())
+                ((List) (taxaNameCollector)).add(node);
         } while (true);
-        if (((List) (obj)).isEmpty())
+        if (((List) (taxaNameCollector)).isEmpty())
             ;
     }
 
@@ -244,8 +437,11 @@ public class Project {
         }
     }
 
+    /**
+     * Export the files to the corresponding files
+     */
     public void getResults() {
-        toFile(filepath.createFile("claden.txt"), claden);
+        toFile(filepath.createFile("claden.txt"), cladenGlobalHashMap);
         toFile(filepath.createFile("supportTree.txt"), supportTree);
         toFile(filepath.createFile("notSupportTree.txt"), notSupportTree);
     }
@@ -305,7 +501,7 @@ public class Project {
     public void showPositions(List list) {
         for (Iterator iterator = list.iterator(); iterator.hasNext();) {
             int i = ((Integer) iterator.next()).intValue();
-            if (snp.getSNPs().contains(Integer.valueOf(i)) || i == -1)
+            if (mainSNPHashMap.getSNPs().contains(Integer.valueOf(i)) || i == -1)
                 showCladeAtPosition(i);
             else
                 System.out.println(
@@ -590,10 +786,10 @@ public class Project {
         return supportTree;
     }
 
-    public SNPTable snp;
+    public SNPTable mainSNPHashMap;
     private NewickTree tree;
     private NewFile filepath;
-    private Map claden;
+    private Map cladenGlobalHashMap;
     private Map supportTree;
     private Map notSupportTree;
     private Map supportSplitKeys;
