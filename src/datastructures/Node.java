@@ -7,107 +7,94 @@ package datastructures;
 
 import java.util.*;
 
-public class Node
-{
+public class Node {
 
-    public boolean equals(Node node)
-    {
+    public boolean equals(Node node) {
         return id == node.id;
     }
 
-    public Node(String s, double d)
-    {
+    public Node(String s, double d) {
         label = new HashMap();
         children = new ArrayList();
         name = s;
         length = d;
     }
 
-    public String toNewickString()
-    {
+    public String toNewickString() {
         Locale.setDefault(Locale.ENGLISH);
         String s = "";
-        if(!children.isEmpty())
-        {
-            for(Iterator iterator = children.iterator(); iterator.hasNext();)
-            {
-                Node node = (Node)iterator.next();
-                if(s.equals(""))
+        if (!children.isEmpty()) {
+            for (Iterator iterator = children.iterator(); iterator.hasNext();) {
+                Node node = (Node) iterator.next();
+                if (s.equals(""))
                     s = node.toNewickString();
                 else
                     s = (new StringBuilder()).append(s).append(",").append(node.toNewickString()).toString();
             }
 
-            return (new StringBuilder()).append("(").append(s).append(")").append(name).append(":").append(String.format("%.3f", new Object[] {
-                Double.valueOf(length)
-            })).toString();
-        } else
-        {
+            return (new StringBuilder()).append("(").append(s).append(")").append(name).append(":")
+                    .append(String.format("%.3f", new Object[] {
+                            Double.valueOf(length)
+                    })).toString();
+        } else {
             return (new StringBuilder()).append(name).append(":").append(String.format("%.3f", new Object[] {
-                Double.valueOf(length)
+                    Double.valueOf(length)
             })).toString();
         }
     }
 
-    public String toNewickPositionString(int i, boolean flag)
-    {
+    public String toNewickPositionString(int i, boolean flag) {
         Locale.setDefault(Locale.ENGLISH);
         String s = "";
-        if(!children.isEmpty())
-        {
-            for(Iterator iterator = children.iterator(); iterator.hasNext();)
-            {
-                Node node = (Node)iterator.next();
-                if(s.equals(""))
+        if (!children.isEmpty()) {
+            for (Iterator iterator = children.iterator(); iterator.hasNext();) {
+                Node node = (Node) iterator.next();
+                if (s.equals(""))
                     s = node.toNewickPositionString(i, flag);
                 else
-                    s = (new StringBuilder()).append(s).append(",").append(node.toNewickPositionString(i, flag)).toString();
+                    s = (new StringBuilder()).append(s).append(",").append(node.toNewickPositionString(i, flag))
+                            .toString();
             }
 
             String s1 = "";
-            if(flag)
-            {
-                if(posSNP != null)
+            if (flag) {
+                if (posSNP != null)
                     s1 = (new StringBuilder()).append("<>").append(id).append("_").append(posSNP).toString();
                 else
                     s1 = (new StringBuilder()).append("").append(id).toString();
-            } else
-            {
+            } else {
                 s1 = (new StringBuilder()).append(id).append(getPositionLabel(i)).toString();
             }
-            return (new StringBuilder()).append("(").append(s).append(")").append(s1).append(":").append(String.format("%.3f", new Object[] {
-                Double.valueOf(length)
-            })).toString();
+            return (new StringBuilder()).append("(").append(s).append(")").append(s1).append(":")
+                    .append(String.format("%.3f", new Object[] {
+                            Double.valueOf(length)
+                    })).toString();
         }
         String s2 = "";
-        if(flag)
-        {
+        if (flag) {
             String s3 = getPositionLabel(i);
-            if(posSNP != null)
+            if (posSNP != null)
                 s3 = (new StringBuilder()).append("<>").append(name).append("_").append(id).append(s3).toString();
             else
                 s3 = (new StringBuilder()).append(name).append("_").append(id).append(s3).toString();
             return (new StringBuilder()).append(s3).append(":").append(String.format("%.3f", new Object[] {
-                Double.valueOf(length)
+                    Double.valueOf(length)
             })).toString();
-        } else
-        {
+        } else {
             String s4 = getPositionLabel(i);
-            return (new StringBuilder()).append(name).append("_").append(id).append(s4).append(":").append(String.format("%.3f", new Object[] {
-                Double.valueOf(length)
-            })).toString();
+            return (new StringBuilder()).append(name).append("_").append(id).append(s4).append(":")
+                    .append(String.format("%.3f", new Object[] {
+                            Double.valueOf(length)
+                    })).toString();
         }
     }
 
-    private String getPositionLabel(int i)
-    {
+    private String getPositionLabel(int i) {
         String s = "";
-        if(i != -1)
-        {
-            Object aobj[] = ((Set)label.get(Integer.valueOf(i))).toArray();
+        if (i != -1) {
+            Object aobj[] = ((Set) label.get(Integer.valueOf(i))).toArray();
             int j = aobj.length;
-            for(int k = 0; k < j; k++)
-            {
+            for (int k = 0; k < j; k++) {
                 Object obj = aobj[k];
                 s = (new StringBuilder()).append(s).append("_").append(obj).toString();
             }
@@ -116,87 +103,88 @@ public class Node
         return s;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return (new StringBuilder()).append(name).append(":").append(String.format("%.8f", new Object[] {
-            Double.valueOf(length)
+                Double.valueOf(length)
         })).append("-").append(id).toString();
     }
 
-    public void addChild(Node node)
-    {
+    public void addChild(Node node) {
         children.add(node);
     }
 
-    public int hashCode()
-    {
+    public int hashCode() {
         int i = 1;
         i = 31 * i + id;
         return i;
     }
 
-    public List getChildren()
-    {
+    public List getChildren() {
         return children;
     }
 
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
 
-    public double getLength()
-    {
+    public double getLength() {
         return length;
     }
 
-    public Node getParent()
-    {
+    public Node getParent() {
         return parent;
     }
 
-    public void setParent(Node node)
-    {
+    public void setParent(Node node) {
         parent = node;
     }
 
-    public int getId()
-    {
+    public int getId() {
         return id;
     }
 
-    public void setId(int i)
-    {
+    public void setId(int i) {
         id = i;
     }
 
-    public Map getLabel()
-    {
+    // public Integer getTotalNumberChildren() {
+
+    // if (children.size() == 0) {
+    // return 1;
+    // } else {
+    // List childrenOfNodeList = children;
+    // Iterator childrenOfNode = childrenOfNodeList.iterator();
+    // Integer numberOfChildren = 0;
+    // while (childrenOfNode.hasNext()) {
+    // Node childOfNode = (Node) childrenOfNode.next();
+    // numberOfChildren += childOfNode.getTotalNumberChildren();
+    // }
+    // return numberOfChildren;
+    // }
+
+    // }
+
+    public Map getLabel() {
         return label;
     }
 
-    public void setLabel(int i, String s)
-    {
-        if(label.containsKey(Integer.valueOf(i)))
-        {
-            ((Set)label.get(Integer.valueOf(i))).add(s);
-        } else
-        {
+    public void setLabel(int i, String s) {
+        if (label.containsKey(Integer.valueOf(i))) {
+            ((Set) label.get(Integer.valueOf(i))).add(s);
+        } else {
             HashSet hashset = new HashSet();
             hashset.add(s);
             label.put(Integer.valueOf(i), hashset);
         }
-        if(parent != null)
+        if (parent != null)
             parent.setLabel(i, s);
     }
 
-    public void setPosSNP(String s)
-    {
+    public void setPosSNP(String s) {
         posSNP = s;
     }
 
-    public void setName(String s)
-    {
+    public void setName(String s) {
         name = s;
     }
 

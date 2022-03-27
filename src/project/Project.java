@@ -8,6 +8,7 @@ package project;
 import datastructures.*;
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Project {
 
@@ -143,12 +144,11 @@ public class Project {
                     } else {
                         Iterator nodesIteratorPossiblyNotSupport = nodesWithSNP.iterator();
                         // TODO: could we include here a check of the distribution among the tree?
-                        System.out.println(snpPosition);
-                        System.out.println(SNPAllele);
+                        System.out.println(snpPosition + SNPAllele);
                         List recheckDistribution = new ArrayList(nodesWithSNP);
                         boolean recheckSupportTree = checkCentipede(recheckDistribution,
                                 tree.getRoot());
-                        System.out.println(recheckSupportTree);
+                        System.out.println("As supportive:" + recheckSupportTree);
                         // This iterator referes to the one used to write down the SNPs
                         Iterator nodesIteratorPossiblyNotSupportWrite = nodesWithSNP.iterator();
 
@@ -191,13 +191,14 @@ public class Project {
      * @return should the node be labelled as supporting?
      */
     public boolean checkCentipede(List nodesToTest, Node rootNode) {
-        List nodesToTestList = nodesToTest;
         List collectedParent = new ArrayList();
-        RecursionInformation startRecursion = new RecursionInformation(false, nodesToTestList, collectedParent, 0);
+        // System.out.println(nodesToTest);
+        RecursionInformation startRecursion = new RecursionInformation(false, nodesToTest, collectedParent, 0);
         RecursionInformation result = checkCentipedeHelper(startRecursion, rootNode);
-        System.out.println(result.passedInternal);
-        return result.isSupportive && result.passedInternal < 3;
+        System.out.println("Recursive Count: " + result.passedInternal);
+        return result.isSupportive & result.passedInternal < 2;
     }
+
     /*
      * public boolean checkCentipedeHelper(List nodesLeft, List collectedNodes, Node
      * currentCladeRoot) {
@@ -239,62 +240,130 @@ public class Project {
      * }
      * }
      */
-
+    /**
+     * Recursion function for the identification of supporting late mutations
+     * 
+     * @param recursionState
+     * @param currentCladeRoot
+     * @return Recursion function after trespasing the tree.
+     */
     public RecursionInformation checkCentipedeHelper(RecursionInformation recursionState, Node currentCladeRoot) {
-        List nodesLeft = recursionState.nodesToSearch;
+        // System.out.println(recursionState.passedInternal);
+        // System.out.println(recursionState.foundNodes);
+        // List nodesLeft = recursionState.nodesToSearch;
+
         Integer recursiveCount = recursionState.passedInternal;
+        // System.out.println(recursiveCount);
+
         // System.out.println(nodesLeft);
         List collectedNodes = new ArrayList(recursionState.foundNodes);
-        List nodesIncoming = new ArrayList(nodesLeft);
+        // System.out.println(collectedNodes);
+        List nodesIncoming = new ArrayList(recursionState.nodesToSearch);
+        // System.out.println(nodesIncoming);
         // List nodesIncoming = nodesLeft;
         // System.out.println(nodesIncoming);
-        boolean foundInList = nodesLeft.contains(currentCladeRoot);
+        // if (nodesIncoming.size() == 0) {
+        // return recursionState;
+        // }
+        boolean foundInList = nodesIncoming.contains(currentCladeRoot);
         boolean isLeaf = currentCladeRoot.getChildren().size() == 0;
+        // System.out.println("Enter rec state" + recursionState.isSupportive);
+
         if (foundInList) {
-            recursiveCount = collectedNodes.size() > 0 ? recursiveCount - collectedNodes.size() : isLeaf ? 0 : 1;
+            recursiveCount = collectedNodes.size() > 0 ? Math.max(recursionState.passedInternal - 1, 0)
+                    : 0;
             nodesIncoming.remove(currentCladeRoot);
             collectedNodes.add(currentCladeRoot);
+            // System.out.println("State nodes incoming: " + nodesIncoming);
             return new RecursionInformation(nodesIncoming.size() == 0, nodesIncoming, collectedNodes, recursiveCount);
-        }
-        // System.out.println(nodesIncoming);
-        else {
+        } else {
             if (isLeaf) {
-                return new RecursionInformation(false, nodesIncoming, collectedNodes, recursiveCount);
+                // System.out.println(nodesIncoming);
+                // System.out.println(nodesIncoming.size() > 0);
+                if (collectedNodes.size() > 0 & nodesIncoming.size() > 0) {
+                    recursiveCount = recursiveCount + 1;
+                }
+                return new RecursionInformation(recursionState.isSupportive, nodesIncoming, collectedNodes,
+                        recursiveCount);
             } else {
-
+                // if (collectedNodes.size() > 0 & nodesIncoming.size() > 0) {
+                // recursiveCount = recursiveCount + 1;
+                // return new RecursionInformation(false, nodesIncoming, collectedNodes,
+                // recursiveCount);
+                // }
+                // System.out.println(getTotalNumberChildren(currentCladeRoot));
                 List childrenOfNodeList = currentCladeRoot.getChildren();
                 // System.out.println(childrenOfNodeList);
                 Collections.sort(childrenOfNodeList,
-                        (Node node1, Node node2) -> node1.getChildren().size() - (node2.getChildren().size()));
+                        // (Node node1, Node node2) -> node1.getChildren().size() -
+                        // (node2.getChildren().size()));
+                        (Node node1, Node node2) -> getTotalNumberChildren(node1) - getTotalNumberChildren(node2));
+
                 Collections.reverse(childrenOfNodeList);
-                // System.out.println(childrenOfNodeList);
+                // List copyChildren = new ArrayList(childrenOfNodeList);
+                // copyChildren.forEach( (child) -> child.getChildren())
+                // System.out.println(copyChildren);
                 Iterator childrenOfNode = childrenOfNodeList.iterator();
                 List nodesLeftChild = new ArrayList(nodesIncoming);
-                RecursionInformation returnedChild = new RecursionInformation(false, nodesLeftChild, collectedNodes,
+                List collectedNodesChild = new ArrayList(collectedNodes);
+
+                RecursionInformation returnedChild = new RecursionInformation(recursionState.isSupportive,
+                        nodesLeftChild,
+                        collectedNodesChild,
                         recursiveCount);
                 while (childrenOfNode.hasNext()) {
 
                     Node newChild = (Node) childrenOfNode.next();
-                    RecursionInformation giveToChild = new RecursionInformation(false, nodesLeftChild, collectedNodes,
-                            recursiveCount);
-                    returnedChild = checkCentipedeHelper(giveToChild, newChild);
 
-                    boolean childResult = returnedChild.isSupportive;
+                    // RecursionInformation giveToChild = new
+                    // RecursionInformation(recursionState.isSupportive,
+                    // nodesLeftChild,
+                    // collectedNodesChild,
+                    // recursiveCount);
+
+                    returnedChild = checkCentipedeHelper(returnedChild, newChild);
+
+                    // boolean childResult = returnedChild.isSupportive;
                     // checkCentipedeHelper(nodesLeftChild, collectedNodes, newChild);
-                    if (childResult) {
-                        break;
-                    }
+
                     nodesLeftChild = returnedChild.nodesToSearch;
-                    collectedNodes = returnedChild.foundNodes;
+                    collectedNodesChild = returnedChild.foundNodes;
                     recursiveCount = returnedChild.passedInternal;
-                }
-                if (collectedNodes.size() > 0) {
-                    returnedChild.passedInternal = recursiveCount + 1;
 
                 }
+                if (collectedNodesChild.size() > 0 & nodesLeftChild.size() > 0) {
+
+                    returnedChild.passedInternal = returnedChild.passedInternal + 1;
+                    // return new RecursionInformation(returnedChild.isSupportive, nodesLeftChild,
+                    // collectedNodesChild,
+                    // recursiveCount + 1);
+                }
+                // else {
+                // System.out.println(collectedNodes);
+                // System.out.println(returnedChild.foundNodes);
+                // if (collectedNodesChild.size() > 0) {
+                // returnedChild.passedInternal = recursiveCount + 1;
+
+                // }
                 return returnedChild;
             }
         }
+    }
+
+    static public Integer getTotalNumberChildren(Node n) {
+        if (n.getChildren().size() == 0) {
+            return 1;
+        } else {
+            List childrenOfNodeList = n.getChildren();
+            Iterator childrenOfNode = childrenOfNodeList.iterator();
+            Integer numberOfChildren = 0;
+            while (childrenOfNode.hasNext()) {
+                Node childOfNode = (Node) childrenOfNode.next();
+                numberOfChildren += getTotalNumberChildren(childOfNode);
+            }
+            return numberOfChildren;
+        }
+
     }
 
     public List getListFromIterator(Iterator nodesToTest) {
