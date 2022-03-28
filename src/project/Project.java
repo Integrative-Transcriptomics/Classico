@@ -142,10 +142,11 @@ public class Project {
                             setClade(snpPosition, node, SNPAllele, supportTree);
                         }
                     } else {
-                        Iterator nodesIteratorPossiblyNotSupport = nodesWithSNP.iterator();
+                        // Iterator nodesIteratorPossiblyNotSupport = nodesWithSNP.iterator();
                         // TODO: could we include here a check of the distribution among the tree?
                         System.out.println(snpPosition + SNPAllele);
                         List recheckDistribution = new ArrayList(nodesWithSNP);
+                        // Checks for cases that might be labelled as supporting
                         boolean recheckSupportTree = checkCentipede(recheckDistribution,
                                 tree.getRoot());
                         System.out.println("As supportive:" + recheckSupportTree);
@@ -168,17 +169,22 @@ public class Project {
         }
     }
 
+    /**
+     * Object to pass recursion information
+     */
     class RecursionInformation {
-        boolean isSupportive;
-        List nodesToSearch;
-        List foundNodes;
-        Integer passedInternal;
+        boolean isSupportive; // Is the SNP supporting
+        List nodesToSearch; // Nodes left to search
+        List foundNodes; // Nodes already found
+        Integer passedInternal; // Number of nodes that have been passed
+        List cladeRootStart; // Root of clade where the node could be supporting
 
-        RecursionInformation(boolean supportive, List toSearch, List found, Integer internalCount) {
+        RecursionInformation(boolean supportive, List toSearch, List found, Integer internalCount, List cladeRoot) {
             isSupportive = supportive;
             nodesToSearch = toSearch;
             foundNodes = found;
             passedInternal = internalCount;
+            cladeRootStart = cladeRoot;
         }
     }
 
@@ -191,12 +197,13 @@ public class Project {
      * @return should the node be labelled as supporting?
      */
     public boolean checkCentipede(List nodesToTest, Node rootNode) {
-        List collectedParent = new ArrayList();
-        // System.out.println(nodesToTest);
-        RecursionInformation startRecursion = new RecursionInformation(false, nodesToTest, collectedParent, 0);
-        RecursionInformation result = checkCentipedeHelper(startRecursion, rootNode);
+        List collectedNodes = new ArrayList();
+        // Create recursion information object
+        RecursionInformation startRecursion = new RecursionInformation(false, nodesToTest, collectedNodes, 0,
+                new ArrayList());
+        RecursionInformation result = checkCentipedeHelper(startRecursion, rootNode, 0);
         System.out.println("Recursive Count: " + result.passedInternal);
-        return result.isSupportive & result.passedInternal < 2;
+        return result.isSupportive & result.passedInternal == 0;
     }
 
     /*
@@ -243,48 +250,67 @@ public class Project {
     /**
      * Recursion function for the identification of supporting late mutations
      * 
-     * @param recursionState
-     * @param currentCladeRoot
+     * @param recursionState   // current results of recursion
+     * @param currentCladeRoot // current node
+     * @param childrenNextNode // Number of total leaves in sibling node
      * @return Recursion function after trespasing the tree.
      */
-    public RecursionInformation checkCentipedeHelper(RecursionInformation recursionState, Node currentCladeRoot) {
+    public RecursionInformation checkCentipedeHelper(RecursionInformation recursionState, Node currentCladeRoot,
+            Integer childrenNextNode) {
+
         // System.out.println(recursionState.passedInternal);
         // System.out.println(recursionState.foundNodes);
         // List nodesLeft = recursionState.nodesToSearch;
 
-        Integer recursiveCount = recursionState.passedInternal;
-        // System.out.println(recursiveCount);
+        // Initialize objects to avoid modifying wrong lists
 
-        // System.out.println(nodesLeft);
+        Integer recursiveCount = recursionState.passedInternal;
         List collectedNodes = new ArrayList(recursionState.foundNodes);
-        // System.out.println(collectedNodes);
         List nodesIncoming = new ArrayList(recursionState.nodesToSearch);
+        List cladeRootStart = new ArrayList(recursionState.cladeRootStart);
+
+        // System.out.println(recursiveCount);
+        // System.out.println(nodesLeft);
+        // System.out.println(collectedNodes);
         // System.out.println(nodesIncoming);
         // List nodesIncoming = nodesLeft;
         // System.out.println(nodesIncoming);
         // if (nodesIncoming.size() == 0) {
         // return recursionState;
         // }
+
+        // Is the current node found in the list? Is it a leaf?
         boolean foundInList = nodesIncoming.contains(currentCladeRoot);
         boolean isLeaf = currentCladeRoot.getChildren().size() == 0;
         // System.out.println("Enter rec state" + recursionState.isSupportive);
 
         if (foundInList) {
-            recursiveCount = collectedNodes.size() > 0 ? Math.max(recursionState.passedInternal - 1, 0)
+            // recursiveCount = collectedNodes.size() > 0 ?
+            // Math.max(recursionState.passedInternal - 1, 0)
+            // recursiveCount = collectedNodes.size() > 0 ?
+            // Math.max(recursionState.passedInternal - 1, 0)
+            recursiveCount = collectedNodes.size() > 0 ? recursionState.passedInternal
                     : 0;
             nodesIncoming.remove(currentCladeRoot);
             collectedNodes.add(currentCladeRoot);
             // System.out.println("State nodes incoming: " + nodesIncoming);
-            return new RecursionInformation(nodesIncoming.size() == 0, nodesIncoming, collectedNodes, recursiveCount);
+            return new RecursionInformation(nodesIncoming.size() == 0, nodesIncoming, collectedNodes, recursiveCount,
+                    cladeRootStart);
         } else {
             if (isLeaf) {
-                // System.out.println(nodesIncoming);
-                // System.out.println(nodesIncoming.size() > 0);
-                if (collectedNodes.size() > 0 & nodesIncoming.size() > 0) {
+                // Add recursiveCount only if we have already started "collecting" nodes,
+                // if there are still nodes to look for
+                // and if the next child is not a leaf
+                // The last case allows for the centipede example to also have late mutation in
+                // a paired leaf.
+                if (cladeRootStart.size() > 0 & nodesIncoming.size() > 0 & childrenNextNode > 1) {
                     recursiveCount = recursiveCount + 1;
                 }
+                // System.out.println(nodesIncoming);
+                // System.out.println(nodesIncoming.size() > 0);
+
                 return new RecursionInformation(recursionState.isSupportive, nodesIncoming, collectedNodes,
-                        recursiveCount);
+                        recursiveCount, cladeRootStart);
             } else {
                 // if (collectedNodes.size() > 0 & nodesIncoming.size() > 0) {
                 // recursiveCount = recursiveCount + 1;
@@ -293,24 +319,28 @@ public class Project {
                 // }
                 // System.out.println(getTotalNumberChildren(currentCladeRoot));
                 List childrenOfNodeList = currentCladeRoot.getChildren();
+                // System.out.println(getTotalNumberChildren(currentCladeRoot));
                 // System.out.println(childrenOfNodeList);
                 Collections.sort(childrenOfNodeList,
                         // (Node node1, Node node2) -> node1.getChildren().size() -
                         // (node2.getChildren().size()));
                         (Node node1, Node node2) -> getTotalNumberChildren(node1) - getTotalNumberChildren(node2));
 
-                Collections.reverse(childrenOfNodeList);
-                // List copyChildren = new ArrayList(childrenOfNodeList);
-                // copyChildren.forEach( (child) -> child.getChildren())
+                // Collections.reverse(childrenOfNodeList);
+                List<Integer> copyChildren = new ArrayList<Integer>();
+                childrenOfNodeList.forEach((child) -> copyChildren.add(getTotalNumberChildren((Node) child)));
+                // .collect(Collectors.toList());
                 // System.out.println(copyChildren);
                 Iterator childrenOfNode = childrenOfNodeList.iterator();
                 List nodesLeftChild = new ArrayList(nodesIncoming);
                 List collectedNodesChild = new ArrayList(collectedNodes);
+                List cladeRootStartChild = new ArrayList(cladeRootStart);
 
                 RecursionInformation returnedChild = new RecursionInformation(recursionState.isSupportive,
                         nodesLeftChild,
                         collectedNodesChild,
-                        recursiveCount);
+                        recursiveCount, cladeRootStartChild);
+                Integer indexNumberChildren = 1;
                 while (childrenOfNode.hasNext()) {
 
                     Node newChild = (Node) childrenOfNode.next();
@@ -321,23 +351,51 @@ public class Project {
                     // collectedNodesChild,
                     // recursiveCount);
 
-                    returnedChild = checkCentipedeHelper(returnedChild, newChild);
+                    returnedChild = checkCentipedeHelper(returnedChild, newChild,
+                            indexNumberChildren > copyChildren.size() - 1 ? 0 : copyChildren.get(indexNumberChildren));
 
                     // boolean childResult = returnedChild.isSupportive;
                     // checkCentipedeHelper(nodesLeftChild, collectedNodes, newChild);
+                    if (returnedChild.nodesToSearch.size() == 0) {
+                        break;
+                    }
+                    // nodesLeftChild = returnedChild.nodesToSearch;
+                    // collectedNodesChild = returnedChild.foundNodes;
+                    // recursiveCount = returnedChild.passedInternal;
+                    // System.out.println(returnedChild.cladeRootStart);
 
-                    nodesLeftChild = returnedChild.nodesToSearch;
-                    collectedNodesChild = returnedChild.foundNodes;
-                    recursiveCount = returnedChild.passedInternal;
+                    if (returnedChild.foundNodes.size() > 0 & returnedChild.cladeRootStart.size() == 0) {
+                        returnedChild.cladeRootStart.add(currentCladeRoot);
+                        // returnedChild.cladeRootStart = cladeRootStartChild;
+                    }
+                    indexNumberChildren++;
+
+                    // System.out.println(returnedChild.cladeRootStart);
 
                 }
-                if (collectedNodesChild.size() > 0 & nodesLeftChild.size() > 0) {
+                if (returnedChild.cladeRootStart.size() > 0 &
+                        returnedChild.nodesToSearch.size() > 0) {
 
                     returnedChild.passedInternal = returnedChild.passedInternal + 1;
-                    // return new RecursionInformation(returnedChild.isSupportive, nodesLeftChild,
-                    // collectedNodesChild,
-                    // recursiveCount + 1);
+                    // // return new RecursionInformation(returnedChild.isSupportive,
+                    // nodesLeftChild,
+                    // // collectedNodesChild,
+                    // // recursiveCount + 1);
                 }
+                if (returnedChild.cladeRootStart.contains(currentCladeRoot)) {
+                    returnedChild.cladeRootStart.remove(currentCladeRoot);
+                    // returnedChild.cladeRootStart = cladeRootStartChild;
+
+                    // collectedNodesChild = new ArrayList();
+                    // returnedChild.foundNodes = new ArrayList();
+
+                }
+                // System.out.println(collectedNodesChild);
+                // System.out.println(childrenOfNodeList);
+                // List checkIntersection = new ArrayList(collectedNodesChild);
+                // System.out.println(checkIntersection);
+                // checkIntersection.retainAll(childrenOfNodeList);
+
                 // else {
                 // System.out.println(collectedNodes);
                 // System.out.println(returnedChild.foundNodes);
