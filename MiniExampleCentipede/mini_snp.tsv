@@ -1,0 +1,11 @@
+Position	Ref	AB	BB	CB	DB	EB	FB	GB
+5	A	T	G	G	G	T	T	T
+10	G	A	A	C	C	C	T	T
+15	A	N	G	G	G	T	T	T
+20	T	.	A	.	.	.	A	.
+25	C	G	G	G	G	T	G	T
+30	C	.	A	A	A	.	.	.
+50	A	.	.	.	.	T	T	.
+750	A	T	G	T	T	.	T	.
+800	G	.	.	.	C	C	.	C
+850	T	.	A	A	.	.	.	.

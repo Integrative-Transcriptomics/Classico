@@ -11,8 +11,10 @@
             "request": "launch",
             "mainClass": "project.Main",
             "projectName": "Classico_110be027",
-            "args": ["MiniExample/mini_snp.tsv", "MiniExample/mini_nwk.nwk","."]
-            // "args": ["MiniExampleCentipede/mini_snp.tsv", "MiniExampleCentipede/mini_nwk.nwk","."]
+            // "args": ["MiniExample/mini_snp.tsv", "MiniExample/mini_nwk.nwk","."]
+            "args": ["MiniExampleCentipede/mini_snp.tsv", "MiniExampleCentipede/mini_nwk.nwk","."]
+            // "args": ["MiniExampleCentipedeAndSibling/mini_snp.tsv", "MiniExampleCentipedeAndSibling/mini_nwk.nwk","."]
+
 
         },
 

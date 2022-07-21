@@ -203,7 +203,7 @@ public class Project {
                 new ArrayList());
         RecursionInformation result = checkCentipedeHelper(startRecursion, rootNode, 0);
         System.out.println("Recursive Count: " + result.passedInternal);
-        return result.isSupportive & result.passedInternal == 0;
+        return result.isSupportive & result.passedInternal < 2;
     }
 
     /*
@@ -303,7 +303,7 @@ public class Project {
                 // and if the next child is not a leaf
                 // The last case allows for the centipede example to also have late mutation in
                 // a paired leaf.
-                if (cladeRootStart.size() > 0 & nodesIncoming.size() > 0 & childrenNextNode > 1) {
+                if (cladeRootStart.size() > 0 & nodesIncoming.size() > 0) {
                     recursiveCount = recursiveCount + 1;
                 }
                 // System.out.println(nodesIncoming);
@@ -357,6 +357,9 @@ public class Project {
                     // boolean childResult = returnedChild.isSupportive;
                     // checkCentipedeHelper(nodesLeftChild, collectedNodes, newChild);
                     if (returnedChild.nodesToSearch.size() == 0) {
+                        if (childrenOfNode.hasNext())
+                            returnedChild.passedInternal = returnedChild.passedInternal + 1;
+
                         break;
                     }
                     // nodesLeftChild = returnedChild.nodesToSearch;
