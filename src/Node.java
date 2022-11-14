@@ -237,14 +237,24 @@ public class Node {
                     // PARAPHYLETIC
                     if (isTotalSNPCount && isOtherSNP){
                         if(!(snp.equals(SNPType.REF))){
-                            currPhyly = Phyly.para;
+                            if (!snp.equals(SNPType.N)){
+                                currPhyly = Phyly.para;
+                            }
+                            else{
+                                currPhyly = Phyly.poly;
+                            }
                         }
                     }
 
                     // MONOPHYLETIC
                     else if (isTotalSNPCount && !isOtherSNP){
                         if(!(snp.equals(SNPType.REF))){
-                            currPhyly = Phyly.mono;
+                            if (!snp.equals(SNPType.N)){
+                                currPhyly = Phyly.mono;
+                            }
+                            else{
+                                currPhyly = Phyly.poly;
+                            }
                         }
                     }
 
