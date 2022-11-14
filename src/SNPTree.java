@@ -3,16 +3,18 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.*;
 import java.util.*;
-import java.util.function.Function;
 
 
 public class SNPTree{
 
     public Node root;
     public HashMap<String, Integer> speciesToColumn;
+    public HashMap<Phyly,OutputFile> mapOutputFiles;
+    public List<Phyly> specifiedClades;
 
-    public SNPTree(String filepath){
+    public SNPTree(String filepath, List<Phyly> specifiedClades){
         this.root = parseNewickTree(Paths.get(filepath));
+        this.specifiedClades = specifiedClades;
     }
 
     public Node parseNewickTree(Path path){
@@ -21,7 +23,7 @@ public class SNPTree{
             lines = Files.readAllLines(path);
             // TODO: better file reading
             for(String line:lines){
-                root = new Node();
+                root = new Node(this);
                 // remove ; from end
                 parseSubtree(line.substring(0,line.length() - 1), this.root, 1);
             }
@@ -205,5 +207,7 @@ public class SNPTree{
         return totalSNPCount;
     }
 
-    
+    public List<Phyly> getSpecifiedClades(){
+        return this.specifiedClades;
+    }
 }
