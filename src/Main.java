@@ -11,6 +11,8 @@ import com.beust.jcommander.ParameterException;
 public class Main {
 
 
+    public static HashMap<Phyly, Output> outputData; 
+
     public static void main(String[] args) {
         Args inputArgs = new Args();
         JCommander jc = JCommander.newBuilder().addObject(inputArgs).build();
@@ -22,9 +24,10 @@ public class Main {
                 jc.usage();
             }
             else{
-                System.out.println(inputArgs.getSpecifiedClades());
+                constructOutputFiles(inputArgs.getSpecifiedClades());
                 SNPTree snpTree = new SNPTree(inputArgs.getNwk(), inputArgs.getSpecifiedClades());
                 compute(snpTree, inputArgs.getSNPTable());
+                saveOutput(inputArgs.getOutDir());
             }
             
           } 
@@ -54,12 +57,15 @@ public class Main {
             while(line != null){
                 String[] listContent = line.split("\t");
                 int position = Integer.parseInt(listContent[0]);
+                snpTree.setPosition(position);
                 SNPType referenceSNP = SNPType.fromString(listContent[1]);
                 List<SNPType> snps = new ArrayList<>();
                 for (int i = 2; i < listContent.length; i++){
-                    snps.add(SNPType.fromString(listContent[i]));
+                    SNPType currSNP = SNPType.fromString(listContent[i]);
+                    if (!currSNP.equals(referenceSNP)){
+                        snps.add(SNPType.fromString(listContent[i]));
+                    }
                 }
-                System.out.println(position);
                 snpTree.propragateSNPs(snps);
                 line = reader.readLine();
             }
@@ -67,6 +73,13 @@ public class Main {
             
         } catch (IOException exception) {
             exception.printStackTrace();
+        }
+    }
+
+    private static void constructOutputFiles(List<Phyly> specifiedPhylies){
+        outputData = new HashMap<>();
+        for (Phyly specifiedPhyly: specifiedPhylies){
+            outputData.put(specifiedPhyly, new Output());
         }
     }
 
@@ -78,5 +91,21 @@ public class Main {
             colIdx += 1;
         }
         return speciesToColumn;
+    }
+
+    public static Output getOutputByPhyly(Phyly phyly){
+        if (outputData.containsKey(phyly)){
+            return outputData.get(phyly);
+        }
+        else{
+            return null;
+        }
+
+    }
+
+    private static void saveOutput(String directory){
+        for (Phyly phyly:outputData.keySet()){
+            outputData.get(phyly).saveAs(directory + "/" + phyly.toString() + ".txt");
+        }
     }
 }

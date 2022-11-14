@@ -9,8 +9,9 @@ public class SNPTree{
 
     public Node root;
     public HashMap<String, Integer> speciesToColumn;
-    public HashMap<Phyly,OutputFile> mapOutputFiles;
+    public HashMap<Phyly,Output> mapOutputFiles;
     public List<Phyly> specifiedClades;
+    public int position;
 
     public SNPTree(String filepath, List<Phyly> specifiedClades){
         this.root = parseNewickTree(Paths.get(filepath));
@@ -35,6 +36,14 @@ public class SNPTree{
 
     public void mapSpeciesToColumn(HashMap<String, Integer> speciesToColumn){
         this.speciesToColumn = speciesToColumn;
+    }
+
+    public void setPosition(int position){
+        this.position = position;
+    }
+
+    public int getPosition(){
+        return this.position;
     }
 
     /**

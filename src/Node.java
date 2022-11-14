@@ -254,8 +254,10 @@ public class Node {
                             currPhyly = Phyly.poly;
                         }
                     }
-                    if(this.getSNPTree().getSpecifiedClades().contains(currPhyly)){
-                        System.out.println(this.getParent().getID() + "->" + this.getID() + " " +  snp + " " +  currPhyly.toString());
+
+                    // append to output list
+                    if(currPhyly != null && this.getSNPTree().getSpecifiedClades().contains(currPhyly)){
+                        Main.getOutputByPhyly(currPhyly).addClade(this, this.getSNPTree().getPosition(), snp);
                     }
 
                 }
