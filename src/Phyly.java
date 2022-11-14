@@ -1,5 +1,5 @@
 public enum Phyly {
-    MONOPYHLETIC,
-    PARAPHYLETIC,
-    POLYPHYLETIC;
+    mono,
+    para,
+    poly;
 }

@@ -5,13 +5,35 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
+
 public class Main {
 
 
-
     public static void main(String[] args) {
-        SNPTree snpTree = new SNPTree(args[1]);
-        compute(snpTree, args[0]);
+        Args inputArgs = new Args();
+        JCommander jc = JCommander.newBuilder().addObject(inputArgs).build();
+        jc.setProgramName("classico.jar");
+        
+        try {
+            jc.parse(args);
+            if (inputArgs.getHelp()){
+                jc.usage();
+            }
+            else{
+                System.out.println(inputArgs.getSpecifiedClades());
+                SNPTree snpTree = new SNPTree(inputArgs.getNwk(), inputArgs.getSpecifiedClades());
+                compute(snpTree, inputArgs.getSNPTable());
+            }
+            
+          } 
+        catch (ParameterException e) {
+            System.err.println(e.getLocalizedMessage());
+            jc.usage();
+          }
+        
+
     }
 
     public static void compute(SNPTree snpTree, String filepath){
