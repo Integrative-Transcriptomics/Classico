@@ -49,11 +49,11 @@ public class Main {
             rt = Runtime.getRuntime();
             System.out.println("Used memory: " + (rt.totalMemory()-rt.freeMemory() - startMemory) + " bytes");
 
-          } 
+        } 
         catch (ParameterException e) {
             System.err.println(e.getLocalizedMessage());
             jc.usage();
-          }
+        }
         
 
     }
@@ -76,7 +76,7 @@ public class Main {
                 }
                 j += 1;
             }
-            snpTree.mapSpeciesToColumn(speciesToColumn(columnNames));
+            snpTree.mapSpeciesToColumn(columnNames);
             line = reader.readLine();
             int lineCounter = 0;
             System.out.println("Compute clades:");
@@ -98,6 +98,10 @@ public class Main {
                     if (!currSNP.equals(referenceSNP)){
                         snps.add(SNPType.fromString(listContent[i]));
                     }
+                    else{
+                        System.err.println("Info: The SNP of species " + columnNames.get(i-2) + " equals reference SNP at position " + position + ". The SNP is treated as the reference.");
+                        snps.add(SNPType.REF);
+                    }
                 }
                 snpTree.propragateSNPs(snps);
                 line = reader.readLine();
@@ -117,16 +121,6 @@ public class Main {
         for (Phyly specifiedPhyly: specifiedPhylies){
             outputData.put(specifiedPhyly, new Output());
         }
-    }
-
-    public static HashMap<String, Integer> speciesToColumn(ArrayList<String> snpTableSpecies){
-        HashMap<String, Integer> speciesToColumn = new HashMap<>();
-        int colIdx = 0;
-        for (String currSnpTableSpecies: snpTableSpecies){
-            speciesToColumn.put(currSnpTableSpecies, colIdx);
-            colIdx += 1;
-        }
-        return speciesToColumn;
     }
 
     public static Output getOutputByPhyly(Phyly phyly){
