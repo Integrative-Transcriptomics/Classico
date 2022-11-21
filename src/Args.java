@@ -1,6 +1,4 @@
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -10,11 +8,15 @@ import com.beust.jcommander.ParameterException;
 
 public class Args {
 
-    @Parameter(names = "--nwk",  description = "phylogenetic tree of all species from the SNP table in newick format", 
+    // ---------------------
+    // define input flags for parsing command line parameters (with JCommander, documentation at https://jcommander.org/)
+    // ---------------------
+
+    @Parameter(names = "--nwk",  description = "path to phylogenetic tree of all species from the SNP table in newick format", 
     required = true, arity = 1, order = 1, validateValueWith  = MyFile.class)
     private String nwkTree;
 
-    @Parameter(names = "--snptable", description = "SNP table (containing SNPs for different positions and all species from the newick tree)", 
+    @Parameter(names = "--snptable", description = "path to SNP table (containing SNPs for different positions and all species from the newick tree)", 
     required = true, arity = 1, order = 0, validateValueWith  = MyFile.class)
     private String snpTable;
 
@@ -29,9 +31,12 @@ public class Args {
     @Parameter(names = "--help", help = true, description = "Shows this help information. A more detailed documentation can be found at https://github.com/Integrative-Transcriptomics/Classico.", order = 4)
     private boolean help = false;
 
-    
+    // ---------------------
+    // classes for validation of input files and output directory
+    // ---------------------
+
     public static class MyDirectory implements IValueValidator<String> {
-        /* Check if value is a directory
+        /* Check if input value is a directory
          */
         public void validate(String paramName, String value) throws ParameterException {
             File file = new File(value);
@@ -42,7 +47,7 @@ public class Args {
     }
 
     public static class MyFile implements IValueValidator<String> {
-        /* Check if value is a file
+        /* Check if input value is a file
          */
         public void validate(String paramName, String value) throws ParameterException {
             File file = new File(value);
@@ -51,6 +56,10 @@ public class Args {
             }
         }
     }
+
+    // ---------------------
+    // getter functions
+    // ---------------------
 
     public Boolean getHelp(){
         return this.help;
