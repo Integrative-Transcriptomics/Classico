@@ -1,3 +1,4 @@
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -34,8 +35,14 @@ public class SNPTree{
         return root;
     }
 
-    public void mapSpeciesToColumn(HashMap<String, Integer> speciesToColumn){
-        this.speciesToColumn = speciesToColumn;
+    public void mapSpeciesToColumn(ArrayList<String> snpTableSpecies){
+
+        this.speciesToColumn = new HashMap<>();
+        int colIdx = 0;
+        for (String currSnpTableSpecies: snpTableSpecies){
+            this.speciesToColumn.put(currSnpTableSpecies, colIdx);
+            colIdx += 1;
+        }    
     }
 
     public void setPosition(int position){
@@ -122,35 +129,38 @@ public class SNPTree{
     }
 
 
-
     /**
      * Performs Fitch algorithm on tree and extracts mono-/poly-/paraphyletic groups.
+     * @param snpList list of SNPs that should be applied to the tree
      */
     public void propragateSNPs(List<SNPType> snpList){
 
-        // define parameter types for addSNPs method
+        // define parameter types for forwardPass method
         Class[] parameterTypes = new Class[2];
         parameterTypes[0] = List.class;
         parameterTypes[1] = HashMap.class;
         Method forwardPassMethod;
         try {
+            // get forwardPass method
             forwardPassMethod = Node.class.getMethod("forwardPass", parameterTypes);
-            // execute addSNPs for each node in tree in post order
+            // collect input arguments
             Object [] args = new Object[]{snpList, speciesToColumn};
+            // execute forwardPass for each node in tree in post order traversal
             postOrderTraversal(forwardPassMethod, this.root, args);
         } catch (NoSuchMethodException | SecurityException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
+        // define parameters for backwardPass method
         parameterTypes = new Class[1];
         parameterTypes[0] = HashMap.class;
-
         Method backwardPassMethod;
         try {
+            // get backwardPass method
             backwardPassMethod = Node.class.getMethod("backwardPass", parameterTypes);
-            // execute addSNPs for each node in tree in post order
+            // collect input arguments
             Object [] args = new Object[]{totalSNPCountBySNPList(snpList)};
+            // execute addSNPs for each node in tree in post order
             preOrderTraversal(backwardPassMethod, this.root, args);
         } catch (NoSuchMethodException | SecurityException e) {
             // TODO Auto-generated catch block
@@ -218,5 +228,31 @@ public class SNPTree{
 
     public List<Phyly> getSpecifiedClades(){
         return this.specifiedClades;
+    }
+
+    /** stores the tree structure and leaf names with the corresponding node ID
+     * @param outputDirectory directory the tree structure should be stored in
+     */
+    public void saveIDDistribution(String outputDirectory){
+        try {
+            FileWriter writerIDDistribution = new FileWriter((outputDirectory + "/IDdistribution.txt"));
+            Class[] parameterTypes = new Class[1];
+            parameterTypes[0] = FileWriter.class;
+            Method writeNodeToIDDistributionFile;
+            try {
+                writeNodeToIDDistributionFile = Node.class.getMethod("writeNodeToIDDistributionFile", parameterTypes);
+                // execute addSNPs for each node in tree in post order
+                Object [] args = new Object[]{writerIDDistribution};
+                postOrderTraversal(writeNodeToIDDistributionFile, this.root, args);
+                writerIDDistribution.close();
+            } catch (NoSuchMethodException | SecurityException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
     }
 }

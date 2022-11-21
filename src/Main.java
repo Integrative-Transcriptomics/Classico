@@ -40,22 +40,21 @@ public class Main {
                 SNPTree snpTree = new SNPTree(inputArgs.getNwk(), inputArgs.getSpecifiedClades());
                 System.out.println("Tree constructed.");
                 compute(snpTree, inputArgs.getSNPTable());
+                // save ID distribution across tree
+                snpTree.saveIDDistribution(inputArgs.getOutDir());
+                // save clades
                 saveOutput(inputArgs.getOutDir());
                 System.out.println("Output saved in " + inputArgs.getOutDir());
             }
-            
             final long runtime = System.nanoTime() - startTime;
             System.out.println("Run time tree construction: " + runtime / 1000000 + "ms");
             rt = Runtime.getRuntime();
             System.out.println("Used memory: " + (rt.totalMemory()-rt.freeMemory() - startMemory) + " bytes");
-
         } 
         catch (ParameterException e) {
             System.err.println(e.getLocalizedMessage());
             jc.usage();
         }
-        
-
     }
 
     public static void compute(SNPTree snpTree, String filepath){
