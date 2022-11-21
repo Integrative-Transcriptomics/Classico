@@ -1,3 +1,6 @@
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -8,8 +11,7 @@ public class Node {
 
     private SNPTree snpTree;
     private String name;
-    private Node leftChild;
-    private Node rightChild;
+    private List<Node> children;
     private Node parent;
     private int idx;
     private float distance;
@@ -58,41 +60,30 @@ public class Node {
      * @param child
      */
     public void addChild(Node child) {
-        if (this.leftChild == null) {
-            this.leftChild = child;
-        } else {
-            this.rightChild = child;
+        if (this.children == null){
+            this.children = new ArrayList<>();
         }
+        this.children.add(child);
     }
 
-    public Node getLeftChild() {
-        return this.leftChild;
-    }
-
-    public Node getRightChild() {
-        return this.rightChild;
-    }
 
     /**
      * @return
      */
-    public LinkedList<Node> getChildren() {
-        LinkedList<Node> children = new LinkedList<>();
-        children.add(leftChild);
-        children.add(rightChild);
-        return children;
+    public List<Node> getChildren() {
+        return this.children;
     }
 
     /**
      * @return
      */
     public boolean hasChildren() {
-        if (this.rightChild == null && this.leftChild == null) {
+        if (this.children == null){
             return false;
-        } else {
+        }
+        else{
             return true;
         }
-
     }
 
     public void setDistance(float distance) {
@@ -163,14 +154,19 @@ public class Node {
      */
     public void addSNPs(List<SNPType> snpList, HashMap<String, Integer> speciesToColumn) {
         if (this.hasChildren()) {
-            Set<SNPType> intersection = new HashSet<>(this.leftChild.getSNPOptions());
-            intersection.retainAll(this.rightChild.getSNPOptions());
-            if (!intersection.isEmpty() && intersection != null) {
-                this.setSNPOptions(intersection);
+            Set<SNPType> snpOptions = new HashSet<>(
+                this.getChildren().get(0).getSNPOptions());
+            for (int idxOtherChild = 1; idxOtherChild < this.getChildren().size(); idxOtherChild ++){
+                snpOptions.retainAll(this.getChildren().get(idxOtherChild).getSNPOptions());
+
+            }
+            if (!snpOptions.isEmpty() && snpOptions != null) {
+                this.setSNPOptions(snpOptions);
             } else {
-                Set<SNPType> union = new HashSet<>(this.leftChild.getSNPOptions());
-                union.addAll(this.rightChild.getSNPOptions());
-                this.setSNPOptions(union);
+                for (int idxOtherChild = 0; idxOtherChild < this.getChildren().size(); idxOtherChild ++){
+                    snpOptions.addAll(this.getChildren().get(idxOtherChild).getSNPOptions());
+                }
+                this.setSNPOptions(snpOptions);
             }
         } else {
             // put inside setSNPs method
@@ -189,7 +185,10 @@ public class Node {
     public void updateSNPCount() {
         for (SNPType snp : SNPType.values()) {
             if (this.hasChildren()) {
-                int snpCount = this.leftChild.getSNPTypeCount(snp) + this.rightChild.getSNPTypeCount(snp);
+                int snpCount = 0;
+                for (int idxOtherChild = 0; idxOtherChild < this.getChildren().size(); idxOtherChild ++){
+                    snpCount += this.getChildren().get(idxOtherChild).getSNPTypeCount(snp);
+                }
                 this.setSNPTypeCount(snp, snpCount);
             } else {
 
@@ -296,6 +295,31 @@ public class Node {
         this.idx = index;
     }
 
+    /** Adds another line to the ID distribution output file with the information on the current node. 
+     * If the current node is a leaf node the name of the node is stored, else the ids of all children are stored
+     * @param fileWriter instance of FileWriter that is used for storage
+     */
+    public void writeNodeToIDDistributionFile(FileWriter fileWriter){
+        String line;
+        if (this.hasChildren()){
+            line = this.idx + "\t";
+            for (int idxOtherChild = 0; idxOtherChild < this.getChildren().size(); idxOtherChild ++){
+                if (idxOtherChild != 0){
+                    line += ",";
+                } 
+                line += this.getChildren().get(idxOtherChild).idx;
+            }
+            line += "\n";
+        }
+        else{
+            line = this.idx + "\t" + this.name + "\n";
+        }
+        try {
+            fileWriter.write(line);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     
 
 }
