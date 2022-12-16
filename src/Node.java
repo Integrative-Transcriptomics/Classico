@@ -1,5 +1,6 @@
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -7,7 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-public class Node {
+public class Node implements Serializable{
 
     private SNPTree snpTree;
     private String name;
@@ -266,7 +267,18 @@ public class Node {
 
                     // append to output list
                     if(currPhyly != null && this.getSNPTree().getSpecifiedClades().contains(currPhyly)){
-                        Main.getOutputByPhyly(currPhyly).addClade(this, this.getSNPTree().getPosition(), snp);
+                        Output currOutput = Main.getOutputByPhyly(currPhyly);
+                        while(currOutput.isUsed()){
+                            // wait for output to not be used
+                            try {
+                                Thread.sleep (1);
+                            } 
+                            catch ( InterruptedException exc) {
+                            }
+                        }
+                        currOutput.setIsUsed(true);
+                        currOutput.addClade(this, this.getSNPTree().getPosition(), snp);
+                        currOutput.setIsUsed(false);
                     }
 
                 }

@@ -8,15 +8,25 @@ import java.util.*;
 
 public class SNPTree{
 
+    boolean isUsed;
+
     public Node root;
     public HashMap<String, Integer> speciesToColumn;
-    public HashMap<Phyly,Output> mapOutputFiles;
+    
     public List<Phyly> specifiedClades;
     public int position;
 
     public SNPTree(String filepath, List<Phyly> specifiedClades){
         this.root = parseNewickTree(Paths.get(filepath));
         this.specifiedClades = specifiedClades;
+    }
+
+    public boolean isUsed(){
+        return this.isUsed;
+    }
+
+    public void setIsUsed(boolean isUsed){
+        this.isUsed = isUsed;
     }
 
     public Node parseNewickTree(Path path){

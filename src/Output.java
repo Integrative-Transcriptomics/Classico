@@ -10,41 +10,48 @@ import java.util.List;
 
 public class Output {
     
-    private HashMap<Node, HashMap<Integer, List<SNPType>>> outputClades;
+    public boolean isUsed;
+    private HashMap<String, HashMap<Integer, List<SNPType>>> outputClades;
 
     public Output(){
         outputClades = new HashMap<>();
     }
 
+    public boolean isUsed(){
+        return this.isUsed;
+    }
+
+    public void setIsUsed(boolean isUsed){
+        this.isUsed = isUsed;
+    }
+
     public void addClade(Node node, int position, SNPType snp){
-        
-        if (!this.outputClades.containsKey(node)){
-            this.outputClades.put(node, new HashMap<>());
+        String branchString = node.getParent().getID() + "->"  + node.getID();
+        if (!this.outputClades.containsKey(branchString)){
+            this.outputClades.put(branchString, new HashMap<>());
         }
-        if (! this.outputClades.get(node).containsKey(position)){
+        if (! this.outputClades.get(branchString).containsKey(position)){
             List<SNPType> snps = new ArrayList<>();
             snps.add(snp);
-            this.outputClades.get(node).put(position,snps);
+            this.outputClades.get(branchString).put(position,snps);
         }
-        if (! this.outputClades.get(node).get(position).contains(snp)){
-            this.outputClades.get(node).get(position).add(snp);
+        if (! this.outputClades.get(branchString).get(position).contains(snp)){
+            this.outputClades.get(branchString).get(position).add(snp);
         }
     }
 
 
     public String toFileString(){
         String string = "";
-        for (Node node: this.outputClades.keySet()){
-            string += node.getParent().getID();
-            string += "->";
-            string += node.getID();
+        for (String branchString: this.outputClades.keySet()){
+            string += branchString;
             string += "\t";
-            string += this.outputClades.get(node).size();
+            string += this.outputClades.get(branchString).size();
             string += "\t";
-            for (int position: this.outputClades.get(node).keySet()){
+            for (int position: this.outputClades.get(branchString).keySet()){
                 string += position;
                 string += ":";
-                string += this.outputClades.get(node).get(position);
+                string += this.outputClades.get(branchString).get(position);
             }
             string += "\n";
         }
