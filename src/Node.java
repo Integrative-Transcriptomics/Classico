@@ -17,16 +17,19 @@ public class Node {
     private float distance;
     private Set<SNPType> snpOptions;
     private HashMap<SNPType, Integer> counts;
+    private int depth;
 
     public Node(SNPTree snpTree) {
         this.snpTree = snpTree;
         this.counts = new HashMap<>();
+        setDepth(0);
     }
 
-    public Node(Node parent) {
+    public Node(Node parent, int depth) {
         this.parent = parent;
         this.snpTree = parent.getSNPTree();
         this.counts = new HashMap<>();
+        this.setDepth(depth);
     }
 
     public Node(Node parent, String name, float distance) {
@@ -39,6 +42,14 @@ public class Node {
 
     public SNPTree getSNPTree(){
         return this.snpTree;
+    }
+
+    public void setDepth(int depth){
+        this.depth = depth;
+    }
+
+    public int getDepth(){
+        return this.depth;
     }
 
     /**
@@ -140,8 +151,12 @@ public class Node {
      */
     public void chooseSNP() {
         if (this.getParent() != null) {
-            if (this.getSNPOptions().size() != 1 && this.getParent().getSNPOptions().size() == 1) {
-                this.setSNPOptions(this.getParent().getSNPOptions());
+            Set<SNPType> snpSetParent = new HashSet<>(this.getParent().getSNPOptions());
+            Set<SNPType> snpSetCurr = new HashSet<>(this.getSNPOptions());
+            
+            snpSetCurr.retainAll(snpSetParent);
+            if (this.getSNPOptions().size() != 1 && snpSetCurr.size() > 0) {
+                this.setSNPOptions(snpSetCurr);
             }
         }
     }
@@ -320,6 +335,122 @@ public class Node {
             e.printStackTrace();
         }
     }
-    
+
+    public boolean isRootN(SNPType snpType){
+        // currently only check if it is leaf node and if node contains N -> should be improved to work for internal nodes aswell
+        // 19.12. 2022 updated that, TODO: check if correct
+        if(!this.hasChildren() && this.snpOptions.contains(snpType)){
+            return true;
+        }
+        else{
+            if (this.hasChildren()){
+                boolean allChildrenN = this.allChildrenN();
+                if (allChildrenN && !(this.parent.snpOptions.size() == 1 && this.parent.snpOptions.contains(SNPType.N)) ){
+                    return true;
+                }
+            }
+        }
+        return false;
+
+    }
+
+    public boolean allChildrenN(){
+        boolean allChildrenN = true;
+        for (Node child: this.getChildren()){
+            allChildrenN = allChildrenN && child.allChildrenN();
+        }
+        if (this.snpOptions.size()!= 1 || !this.snpOptions.contains(SNPType.N)){
+            allChildrenN = false;
+        }
+        return allChildrenN;
+    }
+
+    public List<SNPType> predict(double maxDepth, String method){
+
+        HashMap<SNPType,Double> scores = new HashMap<>();
+        for (SNPType snpType: SNPType.values()){
+            scores.put(snpType, getScore(maxDepth, method, snpType, this.getDepth()));
+        }
+        List<SNPType> maxSNP = new ArrayList<>();
+        double maxScore = 0;
+        for (SNPType snpType: scores.keySet()){
+            if (scores.get(snpType) > maxScore){
+                maxScore = scores.get(snpType);
+                maxSNP = new ArrayList<>();
+                maxSNP.add(snpType);
+            }
+            else if (scores.get(snpType)== maxScore){
+                maxSNP.add(snpType);
+            }
+        }    
+        return maxSNP;
+
+    }
+  
+    public List<Node> getSiblings(){
+        Set<Node> siblings = new HashSet<>();
+        if (this.parent != null){
+            siblings.addAll(this.parent.children);
+            siblings.remove(this);
+        }
+        return new ArrayList<>(siblings);
+
+    }
+
+
+    public double getScore(double maxDepth, String method, SNPType snpType, int currDepth){
+        double currDepthA = ((double) currDepth/this.snpTree.depth);
+        double score = 0;
+        int branchCount = 1;
+        Node parent = this.getParent();
+        List<Node> siblings = null;
+        double parentDepth = ((double) parent.getDepth()/this.snpTree.depth);
+        if (method.equals("cladewise") || method.equals("one-step")){
+            siblings = this.getSiblings();
+        }
+        while(parent != null && currDepthA - maxDepth <= parentDepth){
+            if (parent.snpOptions.contains(snpType)){
+                score += (1.0/branchCount);
+            }
+            if (method.equals("cladewise") || method.equals("one-step")){
+                for (Node sibling:siblings){
+                    if (method.equals("cladewise")){
+                        score += sibling.getCladewiseScore(branchCount + 1, snpType);
+                    }
+                    if (method == "one-step"){
+                        if (sibling.snpOptions.contains(snpType)){
+                            score += (1.0/(branchCount + 1));
+                        }
+                    }
+                }
+                siblings = parent.getSiblings();
+            }
+            parent = parent.getParent();
+            if (parent != null){
+                parentDepth = ((double) parent.getDepth()/this.snpTree.depth);
+            }
+            branchCount += 1;
+        }
+        /*if (currDepthA - maxDepth <= 0){
+            System.out.println("Info: The maximal extension depth for prediction exceeds the root for an unresolved base at position " 
+            + this.snpTree.position + ". The root is used as the final extension.");
+        }*/
+        
+        return score;
+    }
+
+    public double getCladewiseScore(int branchCount, SNPType snpType){
+
+        double score = 0;
+        if (this.hasChildren()){
+            for (Node child:this.getChildren()){
+                score += child.getCladewiseScore(branchCount + 1, snpType);
+            }
+        }
+        if (this.snpOptions.contains(snpType)){
+            score += (1.0/branchCount);
+        }
+        return score;
+    }
 
 }

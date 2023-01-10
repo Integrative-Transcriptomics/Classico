@@ -13,6 +13,8 @@ public class SNPTree{
     public HashMap<Phyly,Output> mapOutputFiles;
     public List<Phyly> specifiedClades;
     public int position;
+    public int depth;
+    public List<Node> leafs = new ArrayList<>();
 
     public SNPTree(String filepath, List<Phyly> specifiedClades){
         this.root = parseNewickTree(Paths.get(filepath));
@@ -27,7 +29,7 @@ public class SNPTree{
             for(String line:lines){
                 root = new Node(this);
                 // remove ; from end
-                parseSubtree(line.substring(0,line.length() - 1), this.root, 1);
+                parseSubtree(line.substring(0,line.length() - 1), this.root, 1, 0);
             }
         } catch (IOException exception) {
             exception.printStackTrace();
@@ -59,7 +61,7 @@ public class SNPTree{
      * @param subtree
      * @param node
      */
-    public int parseSubtree(String subtree, Node node, int id){
+    public int parseSubtree(String subtree, Node node, int id, int currDepth){
        
         int idxStart = subtree.indexOf('(');
         int idxEnd = subtree.lastIndexOf(')');
@@ -69,13 +71,19 @@ public class SNPTree{
 
             ArrayList<String> children = splitSubtree(subtree.substring(idxStart + 1, idxEnd));
             for (String child: children){
-                Node childNode = new Node(node);
+                Node childNode = new Node(node, currDepth + 1);
                 node.addChild(childNode);
-                id = parseSubtree(child, childNode, id);
+                id = parseSubtree(child, childNode, id, currDepth + 1);
             }
             currNode = subtree.substring(idxEnd + 1);
         }
+        else{
+            this.leafs.add(node);
+        }
 
+        if (currDepth > this.depth){
+            this.depth = currDepth;
+        }
         if (currNode.contains(":")){
             String[] nodeAttributes = currNode.split(":");
             node.setName(nodeAttributes[0]);
@@ -128,13 +136,25 @@ public class SNPTree{
 
     }
 
+    public List<Node> getLeafNodesBySNPType(SNPType snpType){
+
+        List<Node> listLeafNodes = new ArrayList<>();
+
+        for (Node leafNode: leafs){
+            if (leafNode.isRootN(snpType)){
+                listLeafNodes.add(leafNode);
+            }
+        }
+        return listLeafNodes;
+
+    }
+
 
     /**
      * Performs Fitch algorithm on tree and extracts mono-/poly-/paraphyletic groups.
      * @param snpList list of SNPs that should be applied to the tree
      */
     public void propragateSNPs(List<SNPType> snpList){
-
         // define parameter types for forwardPass method
         Class[] parameterTypes = new Class[2];
         parameterTypes[0] = List.class;

@@ -24,12 +24,24 @@ public class Args {
     required = true, arity = 1, order = 2, validateValueWith  = MyDirectory.class)
     private String outDir;
 
+    @Parameter(names = "--truth",  description = "directory where the true values are stored", 
+    required = false, arity = 1, order = 4, validateValueWith  = MyFile.class)
+    private String truth;
+
     @Parameter(names = "--clades",  description = "types of clades to compute (monophyletic, polyphyletic, paraphyletic)", 
     variableArity = true, order = 3)
     private List<Phyly> clades = Arrays.asList(Phyly.mono, Phyly.poly, Phyly.para);
 
+    @Parameter(names = "--method",  description = "prediction method ()", order = 5, arity = 1)
+    private String predMethod;
+
+    @Parameter(names = "--predmaxdepth",  description = "max. depth used for prediciton", order = 6, arity = 1)
+    private double maxDepth;
+
+
     @Parameter(names = "--help", help = true, description = "Shows this help information. A more detailed documentation can be found at https://github.com/Integrative-Transcriptomics/Classico.", order = 4)
     private boolean help = false;
+
 
     // ---------------------
     // classes for validation of input files and output directory
@@ -65,8 +77,20 @@ public class Args {
         return this.help;
     }
 
+    public String getTruthDir(){
+        return this.truth;
+    }
+
     public String getOutDir(){
         return this.outDir;
+    }
+
+    public String getPredictionMethod(){
+        return this.predMethod;
+    }
+
+    public double getPredictionMaxDepth(){
+        return this.maxDepth;
     }
 
     public String getSNPTable(){
