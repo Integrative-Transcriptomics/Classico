@@ -1,12 +1,13 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Period;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,6 +20,8 @@ public class Main {
 
 
     public static HashMap<Phyly, Output> outputData; 
+    public static HashMap<Phyly, Integer> snpTypeStatistics;
+    public static HashMap<Phyly, Integer> phylyStatistics;
 
     public static void main(String[] args) {
 
@@ -95,6 +98,15 @@ public class Main {
             int correctPrediction = 0;
             int incorrectPrediction = 0;
             HashMap<Integer, SNPType> predictions = new HashMap<>();
+
+            // Initialize Statistics
+            snpTypeStatistics = new HashMap<>();
+            phylyStatistics = new HashMap<>();
+            for (Phyly phyly: Phyly.values()){
+                phylyStatistics.put(phyly, 0);
+                snpTypeStatistics.put(phyly, 0);
+            }
+            
             while(line != null){
                 if ((lineCounter * 100/lineCount)%4 < (((lineCounter - 1)*100)/lineCount)%4){
                     progressBar = progressBar.substring(0, (int) ((lineCounter) * 100/lineCount)/4 ) + '#' + progressBar.substring((int)(lineCounter * 100/lineCount)/4 + 1, progressBar.length() - 5) + String.format("%1$3s", (lineCounter) * 100/lineCount) + "%\r"  ;
@@ -104,6 +116,7 @@ public class Main {
                 String[] listContent = line.split("\t");
                 int position = Integer.parseInt(listContent[0]);
                 snpTree.setPosition(position);
+                snpTree.initializeStatistic();
                 SNPType referenceSNP = SNPType.fromString(listContent[1]);
                 List<SNPType> snps = new ArrayList<>();
                 for (int i = 2; i < listContent.length; i++){
@@ -116,9 +129,10 @@ public class Main {
                         snps.add(SNPType.REF);
                     }
                 }
-             
                 snpTree.propragateSNPs(snps);
-                if (snps.contains(SNPType.N)){
+                addSNPAlleleStatistics(snpTree.snpTypeStatistics);
+
+                if (snps.contains(SNPType.N) && predicitonMethod != null){
                     int countN = 0;
                     for (int i = 0; i < snps.size(); i ++){
                         if(snps.get(i) == SNPType.N){
@@ -151,8 +165,6 @@ public class Main {
                         containsSingleN = true;
                     }
                 }
-                    
-                
                 line = reader.readLine();
                 lineCounter += 1;
             }
@@ -162,6 +174,10 @@ public class Main {
             System.out.println("Correct Predictions: " + correctPrediction);
             System.out.println("Incorrect Predictions: " + incorrectPrediction);
             reader.close();
+            
+            String filepathPhylyStat = "phylyStat.txt";
+            String filepathSNPTypeStat = "snpTypeStat.txt";
+            writeToStatisticsFiles(filepathPhylyStat, filepathSNPTypeStat);
             
         } catch (IOException exception) {
             exception.printStackTrace();
@@ -195,6 +211,43 @@ public class Main {
         return null;
     }
 
+
+    private static void addSNPAlleleStatistics(HashMap<Phyly, ArrayList<SNPType>> alleleStatistics){
+        
+        for (Phyly phyly: alleleStatistics.keySet()){
+            int previousCount = snpTypeStatistics.get(phyly);
+            int newCount = previousCount + alleleStatistics.get(phyly).size();
+            snpTypeStatistics.replace(phyly, newCount);
+        }
+    }
+
+    private static void writeToStatisticsFiles(String filepathPhylyStat, String filepathSNPTypeStat){
+       
+        String snpTypeStat = "Monophyletic Alleles: " + snpTypeStatistics.get(Phyly.mono) +
+                            "\nParaphyletic Alleles: " + snpTypeStatistics.get(Phyly.para) + 
+                            "\nPolyphyletic Alleles: " + snpTypeStatistics.get(Phyly.poly)
+                            + "\n";
+        String phylyStat = "Monophyletic SNPs: " + phylyStatistics.get(Phyly.mono) + 
+                            "\nParaphyletic SNPs: " + phylyStatistics.get(Phyly.para) +
+                            "\nPolyphyletic SNPs: " + phylyStatistics.get(Phyly.poly) + "\n";
+        try {
+            //Here true is to append the content to file
+            FileWriter fw = new FileWriter(filepathPhylyStat);
+            //BufferedWriter writer give better performance
+            BufferedWriter writer = new BufferedWriter(fw);
+            writer.write(phylyStat);
+            writer.close();
+            fw = new FileWriter(filepathSNPTypeStat);
+            //BufferedWriter writer give better performance
+            writer = new BufferedWriter(fw);
+            writer.write(snpTypeStat);
+            writer.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
     private static void constructOutputFiles(List<Phyly> specifiedPhylies){
         outputData = new HashMap<>();
         for (Phyly specifiedPhyly: specifiedPhylies){
@@ -209,7 +262,6 @@ public class Main {
         else{
             return null;
         }
-
     }
 
     private static void saveOutput(String directory){

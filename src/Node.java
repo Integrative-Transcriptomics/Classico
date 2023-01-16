@@ -3,7 +3,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -18,10 +17,12 @@ public class Node {
     private Set<SNPType> snpOptions;
     private HashMap<SNPType, Integer> counts;
     private int depth;
+    private Phyly phyly;
 
     public Node(SNPTree snpTree) {
         this.snpTree = snpTree;
         this.counts = new HashMap<>();
+        this.phyly = null;
         setDepth(0);
     }
 
@@ -29,6 +30,7 @@ public class Node {
         this.parent = parent;
         this.snpTree = parent.getSNPTree();
         this.counts = new HashMap<>();
+        this.phyly = null;
         this.setDepth(depth);
     }
 
@@ -38,6 +40,7 @@ public class Node {
         this.distance = distance;
         this.snpTree = parent.getSNPTree();
         this.counts = new HashMap<>();
+        this.phyly = null;
     }
 
     public SNPTree getSNPTree(){
@@ -63,6 +66,14 @@ public class Node {
 
     public String getName() {
         return this.name;
+    }
+
+    public void setPhyly(Phyly phyly){
+        this.phyly = phyly;
+    }
+
+    public Phyly getPhyly(){
+        return this.phyly;
     }
 
     /**
@@ -224,87 +235,100 @@ public class Node {
      * @return
      */
     public void checkPhyly(HashMap<SNPType, Integer> totalSNPcount){
-        if (this.getParent() != null){
             
-            for (SNPType snp : this.getSNPOptions()){
-                if (this.getSNPOptions().size() == 1){
-                    
-                    boolean isTotalSNPCount = (this.getSNPTypeCount(snp) == totalSNPcount.get(snp));
-                    
-                    boolean isOtherSNP = false;
-                    Set<SNPType> otherSNPs = new HashSet<>();
-                    otherSNPs.addAll(this.counts.keySet());
-                    otherSNPs.remove(snp);
-                    for (SNPType otherSNP: otherSNPs){
-                        if (this.counts.get(otherSNP) > 0){
-                            isOtherSNP = true;
+        for (SNPType snp : this.getSNPOptions()){
+            if (this.getSNPOptions().size() == 1){
+                
+                boolean isTotalSNPCount = (this.getSNPTypeCount(snp) == totalSNPcount.get(snp));
+                
+                boolean isOtherSNP = false;
+                Set<SNPType> otherSNPs = new HashSet<>();
+                otherSNPs.addAll(this.counts.keySet());
+                otherSNPs.remove(snp);
+                for (SNPType otherSNP: otherSNPs){
+                    if (this.counts.get(otherSNP) > 0){
+                        isOtherSNP = true;
+                    }
+                }
+                
+                boolean isExtendable = false;
+                if(this.getParent() != null && this.getParent().getSNPOptions().size() == 1 && this.getParent().getSNPOptions().contains(snp)){
+                    isExtendable = true;
+                }
+
+                Phyly currPhyly = null;
+
+                // PARAPHYLETIC
+                if (isTotalSNPCount && isOtherSNP){
+                    if(!(snp.equals(SNPType.REF))){
+                        if (!snp.equals(SNPType.N)){
+                            currPhyly = Phyly.para;
                         }
-                    }
-                    
-                    boolean isExtendable = false;
-                    if(this.getParent() != null && this.getParent().getSNPOptions().size() == 1 && this.getParent().getSNPOptions().contains(snp)){
-                        isExtendable = true;
-                    }
-
-                    Phyly currPhyly = null;
-
-                    // PARAPHYLETIC
-                    if (isTotalSNPCount && isOtherSNP){
-                        if(!(snp.equals(SNPType.REF))){
-                            if (!snp.equals(SNPType.N)){
-                                currPhyly = Phyly.para;
-                            }
-                            else{
-                                currPhyly = Phyly.poly;
-                            }
-                        }
-                    }
-
-                    // MONOPHYLETIC
-                    else if (isTotalSNPCount && !isOtherSNP){
-                        if(!(snp.equals(SNPType.REF))){
-                            if (!snp.equals(SNPType.N)){
-                                currPhyly = Phyly.mono;
-                            }
-                            else{
-                                currPhyly = Phyly.poly;
-                            }
-                        }
-                    }
-
-                    // POLYPHYLETIC
-                    else if (!isTotalSNPCount && !isExtendable){
-                        if(!(snp.equals(SNPType.REF))){
+                        else{
                             currPhyly = Phyly.poly;
                         }
                     }
+                }
 
-                    // append to output list
-                    if(currPhyly != null && this.getSNPTree().getSpecifiedClades().contains(currPhyly)){
-                        Main.getOutputByPhyly(currPhyly).addClade(this, this.getSNPTree().getPosition(), snp);
+                // MONOPHYLETIC
+                else if (isTotalSNPCount && !isOtherSNP){
+                    if(!(snp.equals(SNPType.REF))){
+                        if (!snp.equals(SNPType.N)){
+                            currPhyly = Phyly.mono;
+                        }
+                        else{
+                            currPhyly = Phyly.poly;
+                        }
+                    }
+                }
+
+                // POLYPHYLETIC
+                else if (!isTotalSNPCount && !isExtendable){
+                    if(!(snp.equals(SNPType.REF))){
+                        currPhyly = Phyly.poly;
+                    }
+                }
+                this.setPhyly(currPhyly);
+
+                // append to output list
+                if(currPhyly != null && this.getSNPTree().getSpecifiedClades().contains(currPhyly)){
+                    this.setPhylyStatistics(currPhyly, snp);
+                    Main.getOutputByPhyly(currPhyly).addClade(this, this.getSNPTree().getPosition(), snp);
+                }
+
+            }
+            // OPTIONAL 
+            /*else{
+                if (this.getLeftChild().getSNPOptions().contains(snp) && this.getRightChild().getSNPOptions().contains(snp)){
+                    
+                    // PARAPHYLETIC
+                    if(!(snp.equals(SNPType.REF))){
+                        System.out.println(parentID + "->" + this.getID() + " " +  snp + " " +  "PARAPHYLETIC 1/" + this.getSNPOptions().size());
                     }
 
                 }
-                // OPTIONAL 
-                /*else{
-                    if (this.getLeftChild().getSNPOptions().contains(snp) && this.getRightChild().getSNPOptions().contains(snp)){
-                        
-                        // PARAPHYLETIC
-                        if(!(snp.equals(SNPType.REF))){
-                            System.out.println(parentID + "->" + this.getID() + " " +  snp + " " +  "PARAPHYLETIC 1/" + this.getSNPOptions().size());
-                        }
-
-                    }
-                }*/
-            }
+            }*/
         }
+        
     }
 
     public int getID() {
         return this.idx;
     }
 
-    
+    public void setPhylyStatistics(Phyly phyly, SNPType snp){
+        // count number of snps in a clade
+        if (this.getSNPTree().snpTypeStatistics.containsKey(phyly)){
+            ArrayList<SNPType> listSNPTypes = this.getSNPTree().snpTypeStatistics.get(phyly);
+            if (!listSNPTypes.contains(snp)){
+                listSNPTypes.add(snp);
+            }
+        }
+        // count number of clade types
+        int previousCount = Main.phylyStatistics.get(phyly);
+        int newCount = previousCount + this.counts.get(snp);
+        Main.phylyStatistics.put(phyly, newCount);
+    }
 
     public void setIndex(int index) {
         this.idx = index;

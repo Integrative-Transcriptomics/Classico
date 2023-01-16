@@ -15,6 +15,7 @@ public class SNPTree{
     public int position;
     public int depth;
     public List<Node> leafs = new ArrayList<>();
+    public HashMap<Phyly, ArrayList<SNPType>> snpTypeStatistics;
 
     public SNPTree(String filepath, List<Phyly> specifiedClades){
         this.root = parseNewickTree(Paths.get(filepath));
@@ -35,6 +36,13 @@ public class SNPTree{
             exception.printStackTrace();
         }
         return root;
+    }
+
+    public void initializeStatistic(){
+        snpTypeStatistics = new HashMap<>();    
+        for (Phyly phyly: Phyly.values()){
+            snpTypeStatistics.put(phyly, new ArrayList<>());
+        }
     }
 
     public void mapSpeciesToColumn(ArrayList<String> snpTableSpecies){
@@ -226,7 +234,7 @@ public class SNPTree{
             e.printStackTrace();
         }
         
-        if (node.hasChildren()){
+        if (node.hasChildren() && (node.getParent() == null || node.getParent().getPhyly() != Phyly.mono)){
             for (Node child: node.getChildren()){
                 preOrderTraversal(method, child, args);                
             }
