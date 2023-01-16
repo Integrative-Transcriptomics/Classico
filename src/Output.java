@@ -35,7 +35,12 @@ public class Output {
     public String toFileString(){
         String string = "";
         for (Node node: this.outputClades.keySet()){
-            string += node.getParent().getID();
+            if (node.getParent() == null){
+                string += "root";
+            }
+            else{ 
+                string += node.getParent().getID();
+            }
             string += "->";
             string += node.getID();
             string += "\t";
