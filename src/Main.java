@@ -11,13 +11,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
 public class Main {
-
 
     public static HashMap<Phyly, Output> outputData; 
     public static HashMap<Phyly, Integer> snpTypeStatistics;
@@ -42,14 +42,16 @@ public class Main {
             else{
                 System.out.println("Read input parameters.");
                 constructOutputFiles(inputArgs.getSpecifiedClades());
-                String pathTruth = inputArgs.getTruthDir();
-                System.out.println(pathTruth);
                 String predicitonMethod = inputArgs.getPredictionMethod();
                 double maxDepth = inputArgs.getPredictionMaxDepth();
                 System.out.println(maxDepth);
                 SNPTree snpTree = new SNPTree(inputArgs.getNwk(), inputArgs.getSpecifiedClades());
                 System.out.println("Tree constructed.");
-                compute(snpTree, inputArgs.getSNPTable(), maxDepth, predicitonMethod, pathTruth);
+                propragateSNPsAndIdentifyClades(snpTree, inputArgs.getSNPTable(), maxDepth, predicitonMethod);
+                // write statistics
+                String filepathStat = inputArgs.getOutDir() + "/Statistics.txt";
+                writeToStatisticsFiles(filepathStat);
+                
                 // save ID distribution across tree
                 snpTree.saveIDDistribution(inputArgs.getOutDir());
                 // save clades
@@ -67,7 +69,7 @@ public class Main {
         }
     }
 
-    public static void compute(SNPTree snpTree, String filepath, double maxDepth, String predicitonMethod, String pathTruth){
+    public static void propragateSNPsAndIdentifyClades(SNPTree snpTree, String filepath, double maxDepth, String predicitonMethod){
        
         try {
             long lineCount;
@@ -88,16 +90,21 @@ public class Main {
             snpTree.mapSpeciesToColumn(columnNames);
             System.out.println("Leafs: " + snpTree.leafs.size());
             System.out.println("Depth: " + snpTree.depth);
+
+            String newFilepath = filepath.replace(".", "_predicted.");
+
+            FileWriter fw = new FileWriter(newFilepath);
+            //BufferedWriter writer give better performance
+            BufferedWriter writer = new BufferedWriter(fw);
+            writer.write(line + '\n');
+            writer.close();
+            
+
             line = reader.readLine();
             int lineCounter = 0;
             System.out.println("Compute clades:");
             String progressBar = "|                         |  0%\r";
             System.out.print(progressBar);
-            boolean containsSingleN = false;
-            boolean containsMultiN = false;
-            int correctPrediction = 0;
-            int incorrectPrediction = 0;
-            HashMap<Integer, SNPType> predictions = new HashMap<>();
 
             // Initialize Statistics
             snpTypeStatistics = new HashMap<>();
@@ -132,83 +139,47 @@ public class Main {
                 snpTree.propragateSNPs(snps);
                 addSNPAlleleStatistics(snpTree.snpTypeStatistics);
 
-                if (snps.contains(SNPType.N) && predicitonMethod != null){
-                    int countN = 0;
-                    for (int i = 0; i < snps.size(); i ++){
-                        if(snps.get(i) == SNPType.N){
-                            countN += 1;
-                        }
-                    }
-                    if(countN > 1){
-                        containsMultiN = true;
-                    }
-                    else if (countN == 1){
+                // Prediction of unresolved bases
+                if (snps.contains(SNPType.N) && predicitonMethod != null){                    
+                    for (Node rootN: snpTree.cladesUnresolvedBases.keySet()){
+                        Set<SNPType> prediction = rootN.predict(maxDepth, predicitonMethod);
                         
-                        List<Node> listNodesN = snpTree.getLeafNodesBySNPType(SNPType.N);
-                        for (Node currNodeN: listNodesN){
-                            List<SNPType> prediction = currNodeN.predict(maxDepth, predicitonMethod);
-                            for (SNPType snpType: prediction){
-                                predictions.put(position, snpType);
-                            }
-                            if (!(pathTruth == null)){
+                            for (Node leaf: snpTree.cladesUnresolvedBases.get(rootN)){
                                 
-                            SNPType truth = getTruth(currNodeN.getName(), position, pathTruth, snpTree);
-                            if (prediction.contains(truth)){
-                                correctPrediction += 1;
+                                leaf.setSNPOptions(prediction);
+                                int column = snpTree.speciesToColumn.get(leaf.getName());
+                                ArrayList<String> listSNPoptions = new ArrayList<String>();
+                                for (SNPType snp: leaf.getSNPOptions()){
+                                    listSNPoptions.add(snp.toString());
+                                }
+                                listContent[column + 2] =  String.join("," , listSNPoptions);
+                                
                             }
-                            else{
-                                incorrectPrediction += 1;
-                            }
-                            }
-                            
-                        }
-                        containsSingleN = true;
+                        
                     }
+                    
+                                        
                 }
+
+                String newPredictionLine =  String.join("\t", listContent) + "\n";
+                // write (new) SNP labels to output
+                fw = new FileWriter(newFilepath, true);
+                writer = new BufferedWriter(fw);
+                writer.write(newPredictionLine);
+                writer.close();
+                
                 line = reader.readLine();
                 lineCounter += 1;
             }
             progressBar = "|#########################|100%\r";
             System.out.println(progressBar);
-
-            System.out.println("Correct Predictions: " + correctPrediction);
-            System.out.println("Incorrect Predictions: " + incorrectPrediction);
             reader.close();
             
-            String filepathPhylyStat = "phylyStat.txt";
-            String filepathSNPTypeStat = "snpTypeStat.txt";
-            writeToStatisticsFiles(filepathPhylyStat, filepathSNPTypeStat);
+            
             
         } catch (IOException exception) {
             exception.printStackTrace();
         }
-    }
-
-    public static SNPType getTruth(String name, int position, String truth, SNPTree snpTree){
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(truth));
-            String line = reader.readLine();
-            line = reader.readLine();
-            while (line != null){
-                String[] splits = line.split("\t");
-                int currPosition = Integer.parseInt(splits[0]);
-                if (currPosition == position){
-                    int column = snpTree.speciesToColumn.get(name) + 2;
-                    SNPType snpType = SNPType.fromString(splits[column]);
-                    reader.close();
-                    return snpType;
-                }
-                line = reader.readLine();
-            }
-            reader.close();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return null;
     }
 
 
@@ -221,7 +192,7 @@ public class Main {
         }
     }
 
-    private static void writeToStatisticsFiles(String filepathPhylyStat, String filepathSNPTypeStat){
+    private static void writeToStatisticsFiles(String filepathStat){
        
         String snpTypeStat = "Monophyletic Alleles: " + snpTypeStatistics.get(Phyly.mono) +
                             "\nParaphyletic Alleles: " + snpTypeStatistics.get(Phyly.para) + 
@@ -232,14 +203,10 @@ public class Main {
                             "\nPolyphyletic SNPs: " + phylyStatistics.get(Phyly.poly) + "\n";
         try {
             //Here true is to append the content to file
-            FileWriter fw = new FileWriter(filepathPhylyStat);
+            FileWriter fw = new FileWriter(filepathStat);
             //BufferedWriter writer give better performance
             BufferedWriter writer = new BufferedWriter(fw);
             writer.write(phylyStat);
-            writer.close();
-            fw = new FileWriter(filepathSNPTypeStat);
-            //BufferedWriter writer give better performance
-            writer = new BufferedWriter(fw);
             writer.write(snpTypeStat);
             writer.close();
         } catch (IOException e) {

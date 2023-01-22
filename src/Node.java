@@ -1,12 +1,14 @@
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class Node {
+public class Node{
 
     private SNPTree snpTree;
     private String name;
@@ -18,12 +20,14 @@ public class Node {
     private HashMap<SNPType, Integer> counts;
     private int depth;
     private Phyly phyly;
+    private ArrayList<Node> leafNodes;
 
     public Node(SNPTree snpTree) {
         this.snpTree = snpTree;
         this.counts = new HashMap<>();
         this.phyly = null;
         setDepth(0);
+        this.leafNodes = new ArrayList<>();
     }
 
     public Node(Node parent, int depth) {
@@ -32,6 +36,7 @@ public class Node {
         this.counts = new HashMap<>();
         this.phyly = null;
         this.setDepth(depth);
+        this.leafNodes = new ArrayList<>();
     }
 
     public Node(Node parent, String name, float distance) {
@@ -41,6 +46,7 @@ public class Node {
         this.snpTree = parent.getSNPTree();
         this.counts = new HashMap<>();
         this.phyly = null;
+        this.leafNodes = new ArrayList<>();
     }
 
     public SNPTree getSNPTree(){
@@ -170,6 +176,15 @@ public class Node {
                 this.setSNPOptions(snpSetCurr);
             }
         }
+        // check if this node is root of an unresolved clade
+        if (this.getSNPOptions().size() == 1 && this.getSNPOptions().contains(SNPType.N) && !this.getParent().getSNPOptions().contains(SNPType.N)){
+            Node root =  this;
+            ArrayList<Node> leafs = new ArrayList<>();
+            for (Node leaf:leafNodes){
+                leafs.add(leaf);
+            }
+            this.snpTree.cladesUnresolvedBases.put(root, leafs);
+        }
     }
 
     /**
@@ -192,6 +207,10 @@ public class Node {
                 for (int idxOtherChild = 0; idxOtherChild < this.getChildren().size(); idxOtherChild ++){
                     snpOptions.addAll(this.getChildren().get(idxOtherChild).getSNPOptions());
                 }
+                // N is only propragated as long as there is no solved base for all children of a node
+                if (snpOptions.size() > 1 && snpOptions.contains(SNPType.N)){
+                    snpOptions.remove(SNPType.N);
+                }
                 this.setSNPOptions(snpOptions);
             }
         } else {
@@ -200,7 +219,6 @@ public class Node {
             snps.add(snpList.get(speciesToColumn.get(this.getName())));
             this.setSNPOptions(snps);
         }
-
     }
 
     /**
@@ -224,6 +242,19 @@ public class Node {
                     this.setSNPTypeCount(snp, 0);
                 }
             }
+        }
+    }
+
+    public void updateLeafs(){
+        if (this.hasChildren()){
+            for (Node child:this.getChildren()){
+                for (Node leaf: child.leafNodes){
+                    this.leafNodes.add(leaf);
+                }         
+            }
+        }
+        else{
+            this.leafNodes.add(this);
         }
     }
 
@@ -297,17 +328,6 @@ public class Node {
                 }
 
             }
-            // OPTIONAL 
-            /*else{
-                if (this.getLeftChild().getSNPOptions().contains(snp) && this.getRightChild().getSNPOptions().contains(snp)){
-                    
-                    // PARAPHYLETIC
-                    if(!(snp.equals(SNPType.REF))){
-                        System.out.println(parentID + "->" + this.getID() + " " +  snp + " " +  "PARAPHYLETIC 1/" + this.getSNPOptions().size());
-                    }
-
-                }
-            }*/
         }
         
     }
@@ -360,53 +380,28 @@ public class Node {
         }
     }
 
-    public boolean isRootN(SNPType snpType){
-        // currently only check if it is leaf node and if node contains N -> should be improved to work for internal nodes aswell
-        // 19.12. 2022 updated that, TODO: check if correct
-        if(!this.hasChildren() && this.snpOptions.contains(snpType)){
-            return true;
-        }
-        else{
-            if (this.hasChildren()){
-                boolean allChildrenN = this.allChildrenN();
-                if (allChildrenN && !(this.parent.snpOptions.size() == 1 && this.parent.snpOptions.contains(SNPType.N)) ){
-                    return true;
-                }
-            }
-        }
-        return false;
-
-    }
-
-    public boolean allChildrenN(){
-        boolean allChildrenN = true;
-        for (Node child: this.getChildren()){
-            allChildrenN = allChildrenN && child.allChildrenN();
-        }
-        if (this.snpOptions.size()!= 1 || !this.snpOptions.contains(SNPType.N)){
-            allChildrenN = false;
-        }
-        return allChildrenN;
-    }
-
-    public List<SNPType> predict(double maxDepth, String method){
+    public Set<SNPType> predict(double maxDepth, String method){
 
         HashMap<SNPType,Double> scores = new HashMap<>();
         for (SNPType snpType: SNPType.values()){
             scores.put(snpType, getScore(maxDepth, method, snpType, this.getDepth()));
         }
-        List<SNPType> maxSNP = new ArrayList<>();
+        Set<SNPType> maxSNP = new HashSet<>();
         double maxScore = 0;
         for (SNPType snpType: scores.keySet()){
             if (scores.get(snpType) > maxScore){
                 maxScore = scores.get(snpType);
-                maxSNP = new ArrayList<>();
+                maxSNP = new HashSet<>();
                 maxSNP.add(snpType);
             }
             else if (scores.get(snpType)== maxScore){
                 maxSNP.add(snpType);
             }
         }    
+        if (maxSNP.size() != 1){
+            maxSNP = new HashSet<>();
+            maxSNP.add(SNPType.N);
+        }
         return maxSNP;
 
     }

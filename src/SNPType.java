@@ -6,6 +6,19 @@ public enum SNPType {
     N,
     REF;
 
+    @Override
+    public String toString() {
+        switch(this) {
+        case A: return "A";
+        case G: return "G";
+        case T: return "T";
+        case C: return "C";
+        case N: return "N";
+        case REF: return ".";
+        default: throw new IllegalArgumentException();
+        }
+    }
+
     public static SNPType fromString(String s){
         if ("Aa".contains(s)){
             return A;

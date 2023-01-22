@@ -16,10 +16,12 @@ public class SNPTree{
     public int depth;
     public List<Node> leafs = new ArrayList<>();
     public HashMap<Phyly, ArrayList<SNPType>> snpTypeStatistics;
+    public HashMap<Node,ArrayList<Node>> cladesUnresolvedBases;
 
     public SNPTree(String filepath, List<Phyly> specifiedClades){
         this.root = parseNewickTree(Paths.get(filepath));
         this.specifiedClades = specifiedClades;
+        this.cladesUnresolvedBases = new HashMap<>();
     }
 
     public Node parseNewickTree(Path path){
@@ -35,7 +37,28 @@ public class SNPTree{
         } catch (IOException exception) {
             exception.printStackTrace();
         }
+        // map leafs to each internal node
+        Class[] parameterTypes = new Class[0];
+        Method updateLeafsMethod;
+        try {
+            // get forwardPass method
+            updateLeafsMethod = Node.class.getMethod("updateLeafs", parameterTypes);
+            // collect input arguments
+            Object [] args = new Object[]{};
+            // execute forwardPass for each node in tree in post order traversal
+            postOrderTraversal(updateLeafsMethod, this.root, args);
+        } catch (NoSuchMethodException | SecurityException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         return root;
+    }
+
+    public void sortLeafList(){
+        
+
+
     }
 
     public void initializeStatistic(){
@@ -43,6 +66,7 @@ public class SNPTree{
         for (Phyly phyly: Phyly.values()){
             snpTypeStatistics.put(phyly, new ArrayList<>());
         }
+        this.cladesUnresolvedBases = new HashMap<>();
     }
 
     public void mapSpeciesToColumn(ArrayList<String> snpTableSpecies){
@@ -143,20 +167,6 @@ public class SNPTree{
         return splits;
 
     }
-
-    public List<Node> getLeafNodesBySNPType(SNPType snpType){
-
-        List<Node> listLeafNodes = new ArrayList<>();
-
-        for (Node leafNode: leafs){
-            if (leafNode.isRootN(snpType)){
-                listLeafNodes.add(leafNode);
-            }
-        }
-        return listLeafNodes;
-
-    }
-
 
     /**
      * Performs Fitch algorithm on tree and extracts mono-/poly-/paraphyletic groups.
