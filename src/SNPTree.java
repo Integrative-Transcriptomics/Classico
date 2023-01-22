@@ -271,9 +271,9 @@ public class SNPTree{
     /** stores the tree structure and leaf names with the corresponding node ID
      * @param outputDirectory directory the tree structure should be stored in
      */
-    public void saveIDDistribution(String outputDirectory){
+    public void saveIDDistribution(String filepath){
         try {
-            FileWriter writerIDDistribution = new FileWriter((outputDirectory + "/IDdistribution.txt"));
+            FileWriter writerIDDistribution = new FileWriter(filepath);
             Class[] parameterTypes = new Class[1];
             parameterTypes[0] = FileWriter.class;
             Method writeNodeToIDDistributionFile;

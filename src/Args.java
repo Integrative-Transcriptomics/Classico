@@ -24,9 +24,8 @@ public class Args {
     required = true, arity = 1, order = 2, validateValueWith  = MyDirectory.class)
     private String outDir;
 
-    @Parameter(names = "--truth",  description = "directory where the true values are stored", 
-    required = false, arity = 1, order = 4, validateValueWith  = MyFile.class)
-    private String truth;
+    @Parameter(names = "--predict", description = "Predict unresolved bases")
+    private boolean predict = false;
 
     @Parameter(names = "--clades",  description = "types of clades to compute (monophyletic, polyphyletic, paraphyletic)", 
     variableArity = true, order = 3)
@@ -77,10 +76,6 @@ public class Args {
         return this.help;
     }
 
-    public String getTruthDir(){
-        return this.truth;
-    }
-
     public String getOutDir(){
         return this.outDir;
     }
@@ -105,4 +100,7 @@ public class Args {
         return this.clades;
     }
     
+    public Boolean getPredict(){
+        return this.predict;
+    }
 }
