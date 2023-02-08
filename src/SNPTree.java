@@ -244,7 +244,7 @@ public class SNPTree{
             e.printStackTrace();
         }
         
-        if (node.hasChildren() && (node.getParent() == null || node.getParent().getPhyly() != Phyly.mono)){
+        if (node.getParent() == null || ( node.hasChildren() && (node.getPhyly() != Phyly.mono && node.getPhyly() != Phyly.poly))){
             for (Node child: node.getChildren()){
                 preOrderTraversal(method, child, args);                
             }

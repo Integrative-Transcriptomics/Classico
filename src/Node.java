@@ -287,10 +287,21 @@ public class Node{
                     isExtendable = true;
                 }
 
+                int childCount = 0;
+                if (this.hasChildren()){
+                    for (Node child: this.getChildren()){
+                        if (child.getSNPOptions().contains(snp)){
+                            childCount += 1;
+                        }
+                        
+                    }
+                }
+                
+
                 Phyly currPhyly = null;
 
                 // PARAPHYLETIC
-                if (isTotalSNPCount && isOtherSNP){
+                if (isTotalSNPCount && isOtherSNP && childCount > 1){
                     if(!(snp.equals(SNPType.REF))){
                         if (!snp.equals(SNPType.N)){
                             currPhyly = Phyly.para;
@@ -314,12 +325,14 @@ public class Node{
                 }
 
                 // POLYPHYLETIC
-                else if (!isTotalSNPCount && !isExtendable){
+                else if (!isTotalSNPCount && !isOtherSNP && !isExtendable){
                     if(!(snp.equals(SNPType.REF))){
                         currPhyly = Phyly.poly;
                     }
                 }
                 this.setPhyly(currPhyly);
+                
+                
 
                 // append to output list
                 if(currPhyly != null && this.getSNPTree().getSpecifiedClades().contains(currPhyly)){
@@ -401,6 +414,7 @@ public class Node{
         if (maxSNP.size() != 1){
             maxSNP = new HashSet<>();
             maxSNP.add(SNPType.N);
+            System.err.println("Unresolved base at node " + this.idx + " and position " + this.snpTree.position + ". The computed scores are the following:" + scores);
         }
         return maxSNP;
 
@@ -454,7 +468,6 @@ public class Node{
             System.out.println("Info: The maximal extension depth for prediction exceeds the root for an unresolved base at position " 
             + this.snpTree.position + ". The root is used as the final extension.");
         }*/
-        
         return score;
     }
 

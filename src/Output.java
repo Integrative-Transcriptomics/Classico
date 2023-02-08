@@ -10,7 +10,7 @@ import java.util.List;
 
 public class Output {
     
-    private HashMap<Node, HashMap<Integer, List<SNPType>>> outputClades;
+    private HashMap<Node, ArrayList<String>> outputClades;
 
     public Output(){
         outputClades = new HashMap<>();
@@ -19,15 +19,14 @@ public class Output {
     public void addClade(Node node, int position, SNPType snp){
         
         if (!this.outputClades.containsKey(node)){
-            this.outputClades.put(node, new HashMap<>());
+            ArrayList<String> listPosSNP = new ArrayList<>();
+            listPosSNP.add(position + ":" + "[" + snp + "]");
+            this.outputClades.put(node, listPosSNP);
         }
-        if (! this.outputClades.get(node).containsKey(position)){
-            List<SNPType> snps = new ArrayList<>();
-            snps.add(snp);
-            this.outputClades.get(node).put(position,snps);
-        }
-        if (! this.outputClades.get(node).get(position).contains(snp)){
-            this.outputClades.get(node).get(position).add(snp);
+        else{
+            ArrayList<String> listPosSNP = this.outputClades.get(node);
+            listPosSNP.add(position + ":" + "[" + snp + "]");
+            this.outputClades.put(node, listPosSNP);
         }
     }
 
@@ -46,11 +45,7 @@ public class Output {
             string += "\t";
             string += this.outputClades.get(node).size();
             string += "\t";
-            for (int position: this.outputClades.get(node).keySet()){
-                string += position;
-                string += ":";
-                string += this.outputClades.get(node).get(position);
-            }
+            string += String.join(",", this.outputClades.get(node));
             string += "\n";
         }
         
