@@ -22,14 +22,15 @@ public class Main {
     public static HashMap<Phyly, Output> outputData; 
     public static HashMap<Phyly, Integer> snpTypeStatistics;
     public static HashMap<Phyly, Integer> phylyStatistics;
+    public static long predictionTime =  0;
 
     public static void main(String[] args) {
 
         long startTime = System.nanoTime();
+        double startSeconds = (double)startTime / 1_000_000_000.0;
         Runtime rt = Runtime.getRuntime();
-        long startMemory = (rt.totalMemory()-rt.freeMemory());
-        System.out.println("Used memory: " + startMemory + " bytes");
-
+        rt.gc();
+        System.out.println("Start time: " + startSeconds);
         // input arguments
         Args inputArgs = new Args();
         JCommander jc = JCommander.newBuilder().addObject(inputArgs).build();
@@ -60,37 +61,62 @@ public class Main {
                 SNPTree snpTree = new SNPTree(inputArgs.getNwk(), inputArgs.getSpecifiedClades());
                 System.out.println("Tree constructed.");
                 // propragate SNP along tree, identify clades and predict unresolved bases if specified
+                long initializationTime = System.nanoTime();
+                System.out.println("Initialization time " + (initializationTime - startTime));
                 propragateSNPsAndIdentifyClades(snpTree, SNPtableFilepath, maxDepth, predicitonMethod, predictBoolean, outputDirectory);
                 // save summary statistics
+                
+                long cladeIdentificationTime = System.nanoTime();
+                System.out.println("Clade identification time " + ((cladeIdentificationTime - initializationTime) - predictionTime));
+                
+                System.out.println("Write Statistics");
                 String filepathStat = outputDirectory + "/Statistics.txt";
                 writeToStatisticsFiles(filepathStat);
                 // save ID distribution across tree
+                System.out.println("Save ID Distribution");
                 snpTree.saveIDDistribution(outputDirectory + "/IDDistribution.txt");
                 // save computed clades
+                System.out.println("Save output");
                 saveOutput(outputDirectory, false);
 
                 // ---------------------------------------------------------------------
                 // SECOND ITERATION OF THE ALGORITHM ON PREDICTED SNP TABLE IF SPECIFIED
                 // ---------------------------------------------------------------------
+                long saveTime = System.nanoTime();
+                System.out.println("Write Output time " + (saveTime - cladeIdentificationTime));
+
+                long endTime = System.nanoTime();
+                rt = Runtime.getRuntime();
+                long endMemory = (rt.totalMemory()-rt.freeMemory());
+                System.out.println("Memory Clade Identification: " + (endMemory) + " bytes");
+                System.out.println("Run time: " + (endTime - startTime) + "ns");
+
+                System.out.println("Prediction Time: " + predictionTime);
 
                 if (predictBoolean){
+                    // construct new Output Files
+                    constructOutputFiles(inputArgs.getSpecifiedClades());
+                    
                     // propragate SNP along tree, identify clades and predict unresolved bases if specified
                     int startIdxFilepath = SNPtableFilepath.lastIndexOf('/') + 1;
-                    String predictedSNPTableFilepath = outputDirectory + "/" + SNPtableFilepath.substring(startIdxFilepath).replace(".", "_predicted.");
+                    String predictedSNPTableFilepath = outputDirectory + "/" + SNPtableFilepath.substring(startIdxFilepath).replace(".", "_resolved.");
+                    long cladeIdentificationTime2start = System.nanoTime();
                     propragateSNPsAndIdentifyClades(snpTree, predictedSNPTableFilepath, maxDepth, predicitonMethod, false, outputDirectory);
                     // save second summary statistics
-                    filepathStat = outputDirectory + "/Statistics_predicted.txt";
+                    long cladeIdentificationTime2end = System.nanoTime();
+                    System.out.println("Second: Clade identification time " + (cladeIdentificationTime2end - cladeIdentificationTime2start));
+
+                    long outputTime2start = System.nanoTime();
+                    filepathStat = outputDirectory + "/Statistics_resolved.txt";
                     writeToStatisticsFiles(filepathStat);
                     // save second computed clades
                     saveOutput(outputDirectory, true);
+                    long outputTime2end = System.nanoTime();
+                    System.out.println("Second: Write Output Time " + (outputTime2end - outputTime2start));
                 }
 
                 System.out.println("Output saved in " + outputDirectory);
             }
-            final long runtime = System.nanoTime() - startTime;
-            System.out.println("Run time tree construction: " + runtime / 1000000 + "ms");
-            rt = Runtime.getRuntime();
-            System.out.println("Used memory: " + (rt.totalMemory()-rt.freeMemory() - startMemory) + " bytes");
         } 
         catch(ParameterException e) {
             System.err.println(e.getLocalizedMessage());
@@ -121,7 +147,7 @@ public class Main {
             System.out.println("Depth: " + snpTree.depth);
 
             int startIdxFilepath = filepath.lastIndexOf('/') + 1;
-            String newFilepath = outputDir + "/" + filepath.substring(startIdxFilepath).replace(".", "_predicted.");
+            String newFilepath = outputDir + "/" + filepath.substring(startIdxFilepath).replace(".", "_resolved.");
             
             if (predictBoolean){
                 FileWriter fw = new FileWriter(newFilepath);
@@ -176,6 +202,7 @@ public class Main {
                 addSNPAlleleStatistics(snpTree.snpTypeStatistics);
                 
                 if (predictBoolean){
+                    long predictionTimeStart = System.nanoTime();
                     // Prediction of unresolved bases
                     if (snps.contains(SNPType.N) && predicitonMethod != null){                    
                         for (Node rootN: snpTree.cladesUnresolvedBases.keySet()){
@@ -204,6 +231,9 @@ public class Main {
                     BufferedWriter writer = new BufferedWriter(fw);
                     writer.write(newPredictionLine);
                     writer.close();
+
+                    long predictionTimeEnd = System.nanoTime();
+                    predictionTime += (predictionTimeEnd - predictionTimeStart);
 
                 }
 
@@ -273,7 +303,7 @@ public class Main {
                 outputData.get(phyly).saveAs(directory + "/" + phyly.toString() + ".txt");
             }
             else{
-                outputData.get(phyly).saveAs(directory + "/" + phyly.toString() + "_predicted.txt");
+                outputData.get(phyly).saveAs(directory + "/" + phyly.toString() + "_resolved.txt");
             }
         }
     }
