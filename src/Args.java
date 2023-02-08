@@ -24,17 +24,17 @@ public class Args {
     required = true, arity = 1, order = 2, validateValueWith  = MyDirectory.class)
     private String outDir;
 
-    @Parameter(names = "--predict", description = "Predict unresolved bases")
+    @Parameter(names = "--resolve", description = "Resolve unresolved bases")
     private boolean predict = false;
 
     @Parameter(names = "--clades",  description = "types of clades to compute (monophyletic, polyphyletic, paraphyletic)", 
     variableArity = true, order = 3)
     private List<Phyly> clades = Arrays.asList(Phyly.mono, Phyly.poly, Phyly.para);
 
-    @Parameter(names = "--method",  description = "prediction method ()", order = 5, arity = 1)
+    @Parameter(names = "--method",  description = "neighborhood extension method used for resolution (only-parent, parent-sibling, cladewise)", order = 5, arity = 1)
     private String predMethod;
 
-    @Parameter(names = "--predmaxdepth",  description = "max. depth used for prediciton", order = 6, arity = 1)
+    @Parameter(names = "--relmaxdepth",  description = "relative maximal depth used for resolution", order = 6, arity = 1)
     private double maxDepth;
 
 
