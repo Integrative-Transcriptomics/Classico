@@ -19,6 +19,12 @@ public enum SNPType {
         }
     }
 
+    /**
+     * converts String to SNP type
+     * 
+     * @param s String containing the SNP type
+     * @return SNP Type
+     */
     public static SNPType fromString(String s){
         if ("Aa".contains(s)){
             return A;

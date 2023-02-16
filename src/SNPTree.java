@@ -15,7 +15,7 @@ public class SNPTree{
     public int position;
     public int depth;
     public List<Node> leafs = new ArrayList<>();
-    public HashMap<Phyly, ArrayList<SNPType>> snpTypeStatistics;
+    public HashMap<Phyly, ArrayList<SNPType>> alleleStatistics;
     public HashMap<Node,ArrayList<Node>> cladesUnresolvedBases;
 
     public SNPTree(String filepath, List<Phyly> specifiedClades){
@@ -24,28 +24,44 @@ public class SNPTree{
         this.cladesUnresolvedBases = new HashMap<>();
     }
 
+
+    // ==========================================================================
+    // METHODS FOR NEWICK TREE PARSING
+    // ==========================================================================
+
+    /**
+     * parse Newick file into tree structure
+     * 
+     * @param path path to Newick file
+     * @return root of the tree
+     */
     public Node parseNewickTree(Path path){
+        // --------------------------------------------------------
+        // parse newick tree to internal tree structure
+        // --------------------------------------------------------
         List<String> lines;
         try {
+            // assumes that each Newick file only contains one Newick tree
             lines = Files.readAllLines(path);
-            // TODO: better file reading
-            for(String line:lines){
-                root = new Node(this);
-                // remove ; from end
-                parseSubtree(line.substring(0,line.length() - 1), this.root, 1, 0);
-            }
+            String line = String.join("",lines);
+            root = new Node(this);
+            // remove ; from end
+            parseSubtree(line.substring(0,line.length() - 1), this.root, 1, 0);
+            
         } catch (IOException exception) {
             exception.printStackTrace();
         }
-        // map leafs to each internal node
+        // --------------------------------------------------------
+        // map leafs to each internal node in post order traversal
+        // --------------------------------------------------------
         Class[] parameterTypes = new Class[0];
         Method updateLeafsMethod;
         try {
-            // get forwardPass method
+            // get update leafs method
             updateLeafsMethod = Node.class.getMethod("updateLeafs", parameterTypes);
-            // collect input arguments
+            // there are no input arguments for the update leafs method
             Object [] args = new Object[]{};
-            // execute forwardPass for each node in tree in post order traversal
+            // execute update leafs method for each node in tree in post order traversal
             postOrderTraversal(updateLeafsMethod, this.root, args);
         } catch (NoSuchMethodException | SecurityException e) {
             // TODO Auto-generated catch block
@@ -55,84 +71,60 @@ public class SNPTree{
         return root;
     }
 
-    public void sortLeafList(){
-        
-
-
-    }
-
-    public void initializeStatistic(){
-        snpTypeStatistics = new HashMap<>();    
-        for (Phyly phyly: Phyly.values()){
-            snpTypeStatistics.put(phyly, new ArrayList<>());
-        }
-        this.cladesUnresolvedBases = new HashMap<>();
-    }
-
-    public void mapSpeciesToColumn(ArrayList<String> snpTableSpecies){
-
-        this.speciesToColumn = new HashMap<>();
-        int colIdx = 0;
-        for (String currSnpTableSpecies: snpTableSpecies){
-            this.speciesToColumn.put(currSnpTableSpecies, colIdx);
-            colIdx += 1;
-        }    
-    }
-
-    public void setPosition(int position){
-        this.position = position;
-    }
-
-    public int getPosition(){
-        return this.position;
-    }
-
     /**
+     * parse Newick subtree into tree data strucutre
      * 
-     * 
-     * @param subtree
-     * @param node
+     * @param subtree newick string containing the subtree
+     * @param node already parsed root of the subtree
+     * @param id internal ID for next node
+     * @param currDepth current depth of the subtree
+     * @return maximum ID of subtree = ID of root
      */
     public int parseSubtree(String subtree, Node node, int id, int currDepth){
        
+        // check if there are any subtrees in the current subtree
         int idxStart = subtree.indexOf('(');
         int idxEnd = subtree.lastIndexOf(')');
         String currNode = subtree;
 
+        // 1st case: there are subtrees in the current newick string
         if (idxStart != -1 && idxEnd != -1){
-
+            // get all children by splitting the current newick string into all subtrees
             ArrayList<String> children = splitSubtree(subtree.substring(idxStart + 1, idxEnd));
+            // for all children construct a node, connect it with the parent and parse further subtrees of the child
             for (String child: children){
                 Node childNode = new Node(node, currDepth + 1);
                 node.addChild(childNode);
                 id = parseSubtree(child, childNode, id, currDepth + 1);
             }
+            // the current node is the parent of all subtrees and is described after the closing bracket in the Newick format
             currNode = subtree.substring(idxEnd + 1);
         }
+        // 2nd case: there are no substrees, so this node is a leaf
         else{
             this.leafs.add(node);
         }
-
+        // update maximum depth of the tree
         if (currDepth > this.depth){
             this.depth = currDepth;
         }
+        // set name, ID and distance to parent
         if (currNode.contains(":")){
             String[] nodeAttributes = currNode.split(":");
             node.setName(nodeAttributes[0]);
             node.setDistance(Float.parseFloat(nodeAttributes[1]));
-            node.setIndex(id);
+            node.setID(id);
         }
         else{
             node.setName(null);
             node.setDistance(Float.NaN);
-            node.setIndex(id);
+            node.setID(id);
         }
         return id + 1;
-
     }
 
     /**
-     * Splits a Newick subtree (T1, T2) into the two branches T1 and T2.
+     * Splits a Newick subtree (T1, T2, ..., Tn) into all branches T1, T2, ..., Tn.
      *
      * @param subtree String of subtree in Newick format
      * @return List of branches
@@ -141,6 +133,10 @@ public class SNPTree{
     private ArrayList<String> splitSubtree(String subtree){
         
         ArrayList<String> splits = new ArrayList<String>();
+        // general method: 
+        // subtrees are separated by commata
+        // if there is a comma it needs to be checked whether the amount of opening and closing brackets before the comma is equal
+        // if this is the case, then this comma separates two subtrees, otherwise it is a sepatation that is deeper in the tree
         int counterStart = 0;
         int counterEnd = 0;
         int idxStart = 0;
@@ -165,14 +161,19 @@ public class SNPTree{
             }
         splits.add(subtree.substring(idxStart));
         return splits;
-
     }
 
+    
+    // =========================================================================
+    // METHOD FOR SNP PROPAGATION AND CLADE IDENTIFICATION
+    // =========================================================================
+
     /**
-     * Performs Fitch algorithm on tree and extracts mono-/poly-/paraphyletic groups.
+     * Performs Fitch-like algorithm on tree and extracts mono-/poly-/paraphyletic groups.
      * @param snpList list of SNPs that should be applied to the tree
      */
-    public void propragateSNPs(List<SNPType> snpList){
+
+    public void propagateSNPs(List<SNPType> snpList){
         // define parameter types for forwardPass method
         Class[] parameterTypes = new Class[2];
         parameterTypes[0] = List.class;
@@ -206,6 +207,10 @@ public class SNPTree{
         }       
 
     }
+
+    // =============================================================
+    // general post order and pre order traversal methods
+    // =============================================================
 
     /**
      * Applies a <code>method</code> to each node of the SNPtree of this instance. This is done in post-order traversal.
@@ -243,15 +248,73 @@ public class SNPTree{
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        
+        // pre order traversal is only used for backward pass
+        // so here it can be checked that the traversal breaks for nodes that are the root of a monophyletic or polyphyletic clade
         if (node.getParent() == null || ( node.hasChildren() && (node.getPhyly() != Phyly.mono && node.getPhyly() != Phyly.poly))){
             for (Node child: node.getChildren()){
                 preOrderTraversal(method, child, args);                
             }
         }
+    }
+
+
+    // ====================================================================
+    // OTHER METHODS
+    // ====================================================================
+
+    /**
+     *  initialize allele statistic with empty lists for all phylies
+     */
+    public void initializeAlleleStatistic(){
+        alleleStatistics = new HashMap<>();    
+        for (Phyly phyly: Phyly.values()){
+            alleleStatistics.put(phyly, new ArrayList<>());
+        }
         
     }
 
+    /**
+     *  initialize clades of unresolved bases with empty list
+     */
+    public void initializeUnresolvedClades(){
+        this.cladesUnresolvedBases = new HashMap<>();
+    }
+
+    /**
+     * map each species name to the corresponding column of the SNP table
+     * 
+     * @param snpTableSpecies column names (species names) of the SNP table     
+     */
+    public void mapSpeciesToColumn(ArrayList<String> snpTableSpecies){
+
+        this.speciesToColumn = new HashMap<>();
+        int colIdx = 0;
+        for (String currSnpTableSpecies: snpTableSpecies){
+            this.speciesToColumn.put(currSnpTableSpecies, colIdx);
+            colIdx += 1;
+        }    
+    }
+
+    /**
+     * @param position SNP position in genome
+     */
+    public void setPosition(int position){
+        this.position = position;
+    }
+
+    /**
+     * @return SNP position in genome
+     */
+    public int getPosition(){
+        return this.position;
+    }
+
+    /**
+     * get total count for each SNP at current position
+     * 
+     * @param snpList SNPs for all species at current position
+     * @return map linking SNP to count of this SNP
+     */
     public static HashMap<SNPType, Integer> totalSNPCountBySNPList(List<SNPType> snpList) {
         HashMap<SNPType, Integer> totalSNPCount = new HashMap<>();
         for (SNPType snp : snpList) {
@@ -264,12 +327,15 @@ public class SNPTree{
         return totalSNPCount;
     }
 
+    /**
+     * @return phyly types specified by user
+     */
     public List<Phyly> getSpecifiedClades(){
         return this.specifiedClades;
     }
 
     /** stores the tree structure and leaf names with the corresponding node ID
-     * @param outputDirectory directory the tree structure should be stored in
+     * @param outputDirectory directory where the tree structure should be stored in
      */
     public void saveIDDistribution(String filepath){
         try {
@@ -279,7 +345,7 @@ public class SNPTree{
             Method writeNodeToIDDistributionFile;
             try {
                 writeNodeToIDDistributionFile = Node.class.getMethod("writeNodeToIDDistributionFile", parameterTypes);
-                // execute addSNPs for each node in tree in post order
+                // execute writeNodeToIDDistrubutionFile for each node in tree in post order
                 Object [] args = new Object[]{writerIDDistribution};
                 postOrderTraversal(writeNodeToIDDistributionFile, this.root, args);
                 writerIDDistribution.close();

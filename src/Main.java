@@ -1,6 +1,5 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -11,31 +10,32 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Stream;
 
+// JCommander for CLI
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
 public class Main {
 
     public static HashMap<Phyly, Output> outputData; 
-    public static HashMap<Phyly, Integer> snpTypeStatistics;
-    public static HashMap<Phyly, Integer> phylyStatistics;
-    public static long predictionTime =  0;
+    public static HashMap<Phyly, Integer> alleleStatistics;
+    public static HashMap<Phyly, Integer> snpStatistics;
+    public static long resolutionTime =  0;
+    public static String resolutionMethod;
+    public static double relativeMaxDepth;
+    public static String outputDirectory;
 
     public static void main(String[] args) {
-
+        
+        // measure Time for Runtime analysis
         long startTime = System.nanoTime();
-        double startSeconds = (double)startTime / 1_000_000_000.0;
         Runtime rt = Runtime.getRuntime();
         rt.gc();
-        System.out.println("Start time: " + startSeconds);
         // input arguments
         Args inputArgs = new Args();
         JCommander jc = JCommander.newBuilder().addObject(inputArgs).build();
         jc.setProgramName("classico.jar");
-        
         try {
             // validate input arguments
             jc.parse(args);
@@ -46,13 +46,12 @@ public class Main {
                 // read input arguments
                 System.out.println("Read input parameters.");
                 constructOutputFiles(inputArgs.getSpecifiedClades());
-                String predicitonMethod = inputArgs.getPredictionMethod();
-                double maxDepth = inputArgs.getPredictionMaxDepth();
-                Boolean predictBoolean = inputArgs.getPredict();
-                String outputDirectory = inputArgs.getOutDir();
+                resolutionMethod = inputArgs.getResolutionMethod();
+                relativeMaxDepth = inputArgs.getRelativeMaxDepth();
+                Boolean resolveBoolean = inputArgs.getResolve();
+                outputDirectory = inputArgs.getOutDir();
                 String SNPtableFilepath = inputArgs.getSNPTable();
-
-                System.out.println(predictBoolean);
+                
                 // -----------------------------------------------------------------------
                 // MAIN ALGORITHM
                 // -----------------------------------------------------------------------
@@ -60,79 +59,104 @@ public class Main {
                 // parse SNP Tree from input and define specified clades
                 SNPTree snpTree = new SNPTree(inputArgs.getNwk(), inputArgs.getSpecifiedClades());
                 System.out.println("Tree constructed.");
-                // propragate SNP along tree, identify clades and predict unresolved bases if specified
+                
+                // ***********************************************
+                // PRINT STATEMENTS FOR RUNTIME ANALYSIS ARE COMMENTED
+                // ***********************************************
                 long initializationTime = System.nanoTime();
-                System.out.println("Initialization time " + (initializationTime - startTime));
-                propragateSNPsAndIdentifyClades(snpTree, SNPtableFilepath, maxDepth, predicitonMethod, predictBoolean, outputDirectory);
-                // save summary statistics
+                //System.out.println("Initialization time " + (initializationTime - startTime));
+                long cladeIdentificationTime1start = System.nanoTime();
                 
-                long cladeIdentificationTime = System.nanoTime();
-                System.out.println("Clade identification time " + ((cladeIdentificationTime - initializationTime) - predictionTime));
+                // propragate SNP along tree, identify clades and predict unresolved bases if specified
+                propagateSNPsAndIdentifyClades(snpTree, SNPtableFilepath, resolveBoolean);
                 
+                
+                long cladeIdentificationTime1end = System.nanoTime();
+                //System.out.println("Clade identification time " + ((cladeIdentificationTime1end - cladeIdentificationTime1start) - resolutionTime));
+                long outputTime1start = System.nanoTime();
                 System.out.println("Write Statistics");
+                // save summary statistics
                 String filepathStat = outputDirectory + "/Statistics.txt";
                 writeToStatisticsFiles(filepathStat);
+                
                 // save ID distribution across tree
                 System.out.println("Save ID Distribution");
                 snpTree.saveIDDistribution(outputDirectory + "/IDDistribution.txt");
+                
                 // save computed clades
                 System.out.println("Save output");
                 saveOutput(outputDirectory, false);
+                long outputTime1end = System.nanoTime();
+                //System.out.println("Write Output time " + (outputTime1end - outputTime1start));
+                //System.out.println("Prediction Time: " + resolutionTime);
 
-                // ---------------------------------------------------------------------
-                // SECOND ITERATION OF THE ALGORITHM ON PREDICTED SNP TABLE IF SPECIFIED
-                // ---------------------------------------------------------------------
-                long saveTime = System.nanoTime();
-                System.out.println("Write Output time " + (saveTime - cladeIdentificationTime));
-
-                long endTime = System.nanoTime();
+                // get memory consumption for comparison with old CLASSICO version
                 rt = Runtime.getRuntime();
                 long endMemory = (rt.totalMemory()-rt.freeMemory());
-                System.out.println("Memory Clade Identification: " + (endMemory) + " bytes");
-                System.out.println("Run time: " + (endTime - startTime) + "ns");
+                //System.out.println("Memory Clade Identification: " + (endMemory) + " bytes");
 
-                System.out.println("Prediction Time: " + predictionTime);
 
-                if (predictBoolean){
+                // ---------------------------------------------------------------------
+                // SECOND ITERATION OF THE ALGORITHM ON RESOLVED SNP TABLE IF SPECIFIED
+                // ---------------------------------------------------------------------
+                
+                if (resolveBoolean){
                     // construct new Output Files
                     constructOutputFiles(inputArgs.getSpecifiedClades());
                     
                     // propragate SNP along tree, identify clades and predict unresolved bases if specified
                     int startIdxFilepath = SNPtableFilepath.lastIndexOf('/') + 1;
-                    String predictedSNPTableFilepath = outputDirectory + "/" + SNPtableFilepath.substring(startIdxFilepath).replace(".", "_resolved.");
+                    String resolvedSNPTableFilepath = outputDirectory + "/" + SNPtableFilepath.substring(startIdxFilepath).replace(".", "_resolved.");
                     long cladeIdentificationTime2start = System.nanoTime();
-                    propragateSNPsAndIdentifyClades(snpTree, predictedSNPTableFilepath, maxDepth, predicitonMethod, false, outputDirectory);
+                    propagateSNPsAndIdentifyClades(snpTree, resolvedSNPTableFilepath, false);
+                    
                     // save second summary statistics
                     long cladeIdentificationTime2end = System.nanoTime();
-                    System.out.println("Second: Clade identification time " + (cladeIdentificationTime2end - cladeIdentificationTime2start));
-
+                    //System.out.println("Second: Clade identification time " + (cladeIdentificationTime2end - cladeIdentificationTime2start));
                     long outputTime2start = System.nanoTime();
                     filepathStat = outputDirectory + "/Statistics_resolved.txt";
                     writeToStatisticsFiles(filepathStat);
+
                     // save second computed clades
                     saveOutput(outputDirectory, true);
                     long outputTime2end = System.nanoTime();
-                    System.out.println("Second: Write Output Time " + (outputTime2end - outputTime2start));
+                    //System.out.println("Second: Write Output Time " + (outputTime2end - outputTime2start));
                 }
 
                 System.out.println("Output saved in " + outputDirectory);
+                // print runtime for comparison with old CLASSICO version
+                long endTime = System.nanoTime();
+                //System.out.println("Run time: " + (endTime - startTime) + "ns");
             }
         } 
+        // if parameter exception print help menu
         catch(ParameterException e) {
             System.err.println(e.getLocalizedMessage());
             jc.usage();
         }
     }
 
-    public static void propragateSNPsAndIdentifyClades(SNPTree snpTree, String filepath, double maxDepth, String predicitonMethod, Boolean predictBoolean, String outputDir){
+    /**
+     * Labels nodes of phylogenetic tree, identifies specified clades and resolves unresolved bases (if specified) for all positions in the SNP table.
+     * 
+     * @param snpTree {@link SNPTree} structure parsed from Newick input
+     * @param snpTableFilepath path to SNP table
+     * @param resolveBoolean boolean describing whether unresolved bases should be resolved
+     */
+    public static void propagateSNPsAndIdentifyClades(SNPTree snpTree, String snpTableFilepath, Boolean resolveBoolean){
        
         try {
+            // compute the total line count of the SNP table to know the fraction of processed bases for the progress animation
             long lineCount;
-            Path file = Paths.get(filepath);
+            Path file = Paths.get(snpTableFilepath);
             try (Stream<String> stream = Files.lines(file, StandardCharsets.UTF_8)) {
                 lineCount = stream.count();
             }
-            BufferedReader reader = new BufferedReader(new FileReader(filepath));
+
+            // read SNP table file
+            BufferedReader reader = new BufferedReader(new FileReader(snpTableFilepath));
+            
+            // process first line to map samples to column of SNP table
             String line = reader.readLine();
             ArrayList<String> columnNames = new ArrayList<>();
             int j = 0;
@@ -143,49 +167,56 @@ public class Main {
                 j += 1;
             }
             snpTree.mapSpeciesToColumn(columnNames);
-            System.out.println("Leafs: " + snpTree.leafs.size());
-            System.out.println("Depth: " + snpTree.depth);
 
-            int startIdxFilepath = filepath.lastIndexOf('/') + 1;
-            String newFilepath = outputDir + "/" + filepath.substring(startIdxFilepath).replace(".", "_resolved.");
+            // construct new SNP table filepath for resolved bases
+            int startIdxFilepath = snpTableFilepath.lastIndexOf('/') + 1;
+            String newFilepath = outputDirectory + "/" + snpTableFilepath.substring(startIdxFilepath).replace(".", "_resolved.");
             
-            if (predictBoolean){
+            // if resolution is specified initialize this file with the header containing the sample names
+            if (resolveBoolean){
                 FileWriter fw = new FileWriter(newFilepath);
                 BufferedWriter writer = new BufferedWriter(fw);
                 writer.write(line + '\n');
                 writer.close();
             }
             
-
+            // start of clade identification and resolution
             line = reader.readLine();
             int lineCounter = 0;
-            if(predictBoolean){
+            if(resolveBoolean){
                 System.out.println("Compute clades:");
             }
             else{
-                System.out.println("Compute clades on predicted SNPs:");
+                System.out.println("Compute clades on resolved SNPs:");
             }
             String progressBar = "|                         |  0%\r";
             System.out.print(progressBar);
 
-            // Initialize Statistics
-            snpTypeStatistics = new HashMap<>();
-            phylyStatistics = new HashMap<>();
+            // initialize Statistics
+            alleleStatistics = new HashMap<>();
+            snpStatistics = new HashMap<>();
             for (Phyly phyly: Phyly.values()){
-                phylyStatistics.put(phyly, 0);
-                snpTypeStatistics.put(phyly, 0);
+                snpStatistics.put(phyly, 0);
+                alleleStatistics.put(phyly, 0);
             }
             
+            // iterate over all positions
             while(line != null){
+                
+                // update animation progress bar
                 if ((lineCounter * 100/lineCount)%4 < (((lineCounter - 1)*100)/lineCount)%4){
                     progressBar = progressBar.substring(0, (int) ((lineCounter) * 100/lineCount)/4 ) + '#' + progressBar.substring((int)(lineCounter * 100/lineCount)/4 + 1, progressBar.length() - 5) + String.format("%1$3s", (lineCounter) * 100/lineCount) + "%\r"  ;
                     System.out.print(progressBar);
                 }
                 
+                // update position of SNP Tree and initalize allele statistic and unresolved clades
                 String[] listContent = line.split("\t");
                 int position = Integer.parseInt(listContent[0]);
                 snpTree.setPosition(position);
-                snpTree.initializeStatistic();
+                snpTree.initializeAlleleStatistic();
+                snpTree.initializeUnresolvedClades();
+                
+                // extract SNPs from current position and check that they are not equal to the reference SNP
                 SNPType referenceSNP = SNPType.fromString(listContent[1]);
                 List<SNPType> snps = new ArrayList<>();
                 for (int i = 2; i < listContent.length; i++){
@@ -198,48 +229,66 @@ public class Main {
                         snps.add(SNPType.REF);
                     }
                 }
-                snpTree.propragateSNPs(snps);
-                addSNPAlleleStatistics(snpTree.snpTypeStatistics);
+
+                // --------------------------------------------------------
+                // MAIN STEP: propagate SNPs and identify clades for current position 
+                // --------------------------------------------------------
+                snpTree.propagateSNPs(snps);
+
+                // update allele statistic
+                addSNPAlleleStatistics(snpTree.alleleStatistics);
                 
-                if (predictBoolean){
-                    long predictionTimeStart = System.nanoTime();
-                    // Prediction of unresolved bases
-                    if (snps.contains(SNPType.N) && predicitonMethod != null){                    
+                // --------------------------------------------------------
+                // MAIN STEP: resolution if specifies
+                // --------------------------------------------------------
+                if (resolveBoolean){
+                    // measure resolution time separately
+                    long resolutionTimeStart = System.nanoTime();
+
+                    // only resolve if there are unresolved bases
+                    if (snps.contains(SNPType.N)){                    
+                        
+                        // iterate over roots of unresolved base clades that have been identified during SNP propagation
                         for (Node rootN: snpTree.cladesUnresolvedBases.keySet()){
-                            Set<SNPType> prediction = rootN.predict(maxDepth, predicitonMethod);
                             
-                                for (Node leaf: snpTree.cladesUnresolvedBases.get(rootN)){
-                                    
-                                    leaf.setSNPOptions(prediction);
-                                    int column = snpTree.speciesToColumn.get(leaf.getName());
-                                    ArrayList<String> listSNPoptions = new ArrayList<String>();
-                                    for (SNPType snp: leaf.getSNPOptions()){
-                                        listSNPoptions.add(snp.toString());
-                                    }
-                                    listContent[column + 2] =  String.join("," , listSNPoptions);
-                                    
+                            // resolve root of unresolved clade
+                            SNPType resolution = rootN.resolve(relativeMaxDepth, resolutionMethod);
+                        
+                            // Assign the resolved base to all leafs of the clade
+                            for (Node leaf: snpTree.cladesUnresolvedBases.get(rootN)){
+                                leaf.setSNPOptions(resolution);
+                                
+                                // replace resolved base with original base in new SNP table 
+                                int column = snpTree.speciesToColumn.get(leaf.getName());
+                                ArrayList<String> listSNPoptions = new ArrayList<String>();
+                                for (SNPType snp: leaf.getSNPOptions()){
+                                    listSNPoptions.add(snp.toString());
                                 }
-                            
+                                listContent[column + 2] =  String.join("," , listSNPoptions);
+                            }
                         }
                         
                                             
-                    }
-
+                    }   
+                    
+                    
                     String newPredictionLine =  String.join("\t", listContent) + "\n";
-                    // write (new) SNP labels to output
+                    // write new line of SNP table to output
                     FileWriter fw = new FileWriter(newFilepath, true);
                     BufferedWriter writer = new BufferedWriter(fw);
                     writer.write(newPredictionLine);
                     writer.close();
 
-                    long predictionTimeEnd = System.nanoTime();
-                    predictionTime += (predictionTimeEnd - predictionTimeStart);
+                    //  measure resolution time
+                    long resolutionTimeEnd = System.nanoTime();
+                    resolutionTime += (resolutionTimeEnd - resolutionTimeStart);
 
                 }
-
+                // continue with next line of SNP table
                 line = reader.readLine();
                 lineCounter += 1;
             }
+            // end of clade identification
             progressBar = "|#########################|100%\r";
             System.out.println(progressBar);
             reader.close();
@@ -250,26 +299,35 @@ public class Main {
     }
 
 
-    private static void addSNPAlleleStatistics(HashMap<Phyly, ArrayList<SNPType>> alleleStatistics){
+    /**
+     * add result of allele counts for this position to overall allele statistics
+     * 
+     * @param alleleStatisticsList map that links all phylies to all alleles of this phyly
+     */
+    private static void addSNPAlleleStatistics(HashMap<Phyly, ArrayList<SNPType>> alleleStatisticsList){
         
-        for (Phyly phyly: alleleStatistics.keySet()){
-            int previousCount = snpTypeStatistics.get(phyly);
-            int newCount = previousCount + alleleStatistics.get(phyly).size();
-            snpTypeStatistics.replace(phyly, newCount);
+        for (Phyly phyly: alleleStatisticsList.keySet()){
+            int previousCount = alleleStatistics.get(phyly);
+            int newCount = previousCount + alleleStatisticsList.get(phyly).size();
+            alleleStatistics.replace(phyly, newCount);
         }
     }
 
+    /**
+     * generates an output file based on computed allele and snp statistics
+     * 
+     * @param filepathStat filepath of statistics file
+     */
     private static void writeToStatisticsFiles(String filepathStat){
        
-        String snpTypeStat = "Monophyletic Alleles: " + snpTypeStatistics.get(Phyly.mono) +
-                            "\nParaphyletic Alleles: " + snpTypeStatistics.get(Phyly.para) + 
-                            "\nPolyphyletic Alleles: " + snpTypeStatistics.get(Phyly.poly)
+        String snpTypeStat = "Monophyletic Alleles: " + alleleStatistics.get(Phyly.mono) +
+                            "\nParaphyletic Alleles: " + alleleStatistics.get(Phyly.para) + 
+                            "\nPolyphyletic Alleles: " + alleleStatistics.get(Phyly.poly)
                             + "\n";
-        String phylyStat = "Monophyletic SNPs: " + phylyStatistics.get(Phyly.mono) + 
-                            "\nParaphyletic SNPs: " + phylyStatistics.get(Phyly.para) +
-                            "\nPolyphyletic SNPs: " + phylyStatistics.get(Phyly.poly) + "\n";
+        String phylyStat = "Monophyletic SNPs: " + snpStatistics.get(Phyly.mono) + 
+                            "\nParaphyletic SNPs: " + snpStatistics.get(Phyly.para) +
+                            "\nPolyphyletic SNPs: " + snpStatistics.get(Phyly.poly) + "\n";
         try {
-            //Here true is to append the content to file
             FileWriter fw = new FileWriter(filepathStat);
             BufferedWriter writer = new BufferedWriter(fw);
             writer.write(phylyStat);
@@ -281,6 +339,11 @@ public class Main {
         }
     }
 
+    /**
+     * constructs an {@link Output} for all specified phylies
+     * 
+     * @param specifiedPhylies phylies for which output files should be constructed
+     */
     private static void constructOutputFiles(List<Phyly> specifiedPhylies){
         outputData = new HashMap<>();
         for (Phyly specifiedPhyly: specifiedPhylies){
@@ -288,6 +351,12 @@ public class Main {
         }
     }
 
+    /**
+     * returns {@link Output} for a phyly
+     * 
+     * @param phyly 
+     * @return {@link Output} if it exists for this phyly
+     */
     public static Output getOutputByPhyly(Phyly phyly){
         if (outputData.containsKey(phyly)){
             return outputData.get(phyly);
@@ -297,9 +366,15 @@ public class Main {
         }
     }
 
-    private static void saveOutput(String directory, boolean predicted){
+    /**
+     * constructs clade outputs
+     * 
+     * @param directory directory where the output files should be saved
+     * @param resolved whether the clades are based on resolved bases
+     */
+    private static void saveOutput(String directory, boolean resolved){
         for (Phyly phyly:outputData.keySet()){
-            if (!predicted){
+            if (!resolved){
                 outputData.get(phyly).saveAs(directory + "/" + phyly.toString() + ".txt");
             }
             else{

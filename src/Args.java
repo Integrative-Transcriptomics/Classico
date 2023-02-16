@@ -24,21 +24,21 @@ public class Args {
     required = true, arity = 1, order = 2, validateValueWith  = MyDirectory.class)
     private String outDir;
 
-    @Parameter(names = "--resolve", description = "Resolve unresolved bases")
-    private boolean predict = false;
+    @Parameter(names = "--resolve", order = 5, description = "Resolve unresolved bases")
+    private boolean resolve = false;
 
     @Parameter(names = "--clades",  description = "types of clades to compute (monophyletic, polyphyletic, paraphyletic)", 
     variableArity = true, order = 3)
     private List<Phyly> clades = Arrays.asList(Phyly.mono, Phyly.poly, Phyly.para);
 
-    @Parameter(names = "--method",  description = "neighborhood extension method used for resolution (only-parent, parent-sibling, cladewise)", order = 5, arity = 1)
-    private String predMethod;
+    @Parameter(names = "--method",  description = "neighborhood extension method used for resolution (only-parent, parent-sibling, cladewise)", order = 6, arity = 1)
+    private String predMethod = "only-parent";
 
-    @Parameter(names = "--relmaxdepth",  description = "relative maximal depth used for resolution", order = 6, arity = 1)
-    private double maxDepth;
+    @Parameter(names = "--relmaxdepth",  description = "relative maximal depth used for resolution", order = 7, arity = 1)
+    private double maxDepth = 0.2;
 
 
-    @Parameter(names = "--help", help = true, description = "Shows this help information. A more detailed documentation can be found at https://github.com/Integrative-Transcriptomics/Classico.", order = 4)
+    @Parameter(names = "--help", help = true, description = "Shows this help information. A more detailed documentation can be found at https://github.com/Integrative-Transcriptomics/Classico.", order = 8)
     private boolean help = false;
 
 
@@ -80,11 +80,11 @@ public class Args {
         return this.outDir;
     }
 
-    public String getPredictionMethod(){
+    public String getResolutionMethod(){
         return this.predMethod;
     }
 
-    public double getPredictionMaxDepth(){
+    public double getRelativeMaxDepth(){
         return this.maxDepth;
     }
 
@@ -100,7 +100,7 @@ public class Args {
         return this.clades;
     }
     
-    public Boolean getPredict(){
-        return this.predict;
+    public Boolean getResolve(){
+        return this.resolve;
     }
 }
