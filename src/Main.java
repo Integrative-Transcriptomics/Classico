@@ -77,7 +77,7 @@ public class Main {
                 System.out.println("Write Statistics");
                 // save summary statistics
                 String filepathStat = outputDirectory + "/Statistics.txt";
-                writeToStatisticsFiles(filepathStat);
+                writeToStatisticsFiles(filepathStat, inputArgs.getSpecifiedClades());
                 
                 // save ID distribution across tree
                 System.out.println("Save ID Distribution");
@@ -88,7 +88,7 @@ public class Main {
                 saveOutput(outputDirectory, false);
                 long outputTime1end = System.nanoTime();
                 //System.out.println("Write Output time " + (outputTime1end - outputTime1start));
-                //System.out.println("Prediction Time: " + resolutionTime);
+                //System.out.println("Resolution Time: " + resolutionTime);
 
                 // get memory consumption for comparison with old CLASSICO version
                 rt = Runtime.getRuntime();
@@ -115,7 +115,7 @@ public class Main {
                     //System.out.println("Second: Clade identification time " + (cladeIdentificationTime2end - cladeIdentificationTime2start));
                     long outputTime2start = System.nanoTime();
                     filepathStat = outputDirectory + "/Statistics_resolved.txt";
-                    writeToStatisticsFiles(filepathStat);
+                    writeToStatisticsFiles(filepathStat, inputArgs.getSpecifiedClades());
 
                     // save second computed clades
                     saveOutput(outputDirectory, true);
@@ -272,11 +272,11 @@ public class Main {
                     }   
                     
                     
-                    String newPredictionLine =  String.join("\t", listContent) + "\n";
+                    String newResolutionLine =  String.join("\t", listContent) + "\n";
                     // write new line of SNP table to output
                     FileWriter fw = new FileWriter(newFilepath, true);
                     BufferedWriter writer = new BufferedWriter(fw);
-                    writer.write(newPredictionLine);
+                    writer.write(newResolutionLine);
                     writer.close();
 
                     //  measure resolution time
@@ -318,15 +318,32 @@ public class Main {
      * 
      * @param filepathStat filepath of statistics file
      */
-    private static void writeToStatisticsFiles(String filepathStat){
+    private static void writeToStatisticsFiles(String filepathStat, List<Phyly> specifiedPhylies){
        
-        String snpTypeStat = "Monophyletic Alleles: " + alleleStatistics.get(Phyly.mono) +
-                            "\nParaphyletic Alleles: " + alleleStatistics.get(Phyly.para) + 
-                            "\nPolyphyletic Alleles: " + alleleStatistics.get(Phyly.poly)
-                            + "\n";
-        String phylyStat = "Monophyletic SNPs: " + snpStatistics.get(Phyly.mono) + 
-                            "\nParaphyletic SNPs: " + snpStatistics.get(Phyly.para) +
-                            "\nPolyphyletic SNPs: " + snpStatistics.get(Phyly.poly) + "\n";
+        String snpTypeStat = "";
+        String phylyStat = "";
+        if (specifiedPhylies.contains(Phyly.mono)){
+            snpTypeStat += "Monophyletic Alleles: " + alleleStatistics.get(Phyly.mono);
+            phylyStat += "Monophyletic SNPs: " + snpStatistics.get(Phyly.mono);
+        }
+        if (specifiedPhylies.contains(Phyly.para)){
+            if (specifiedPhylies.contains(Phyly.mono)){
+                snpTypeStat += "\n";
+                phylyStat += "\n";
+            }
+            snpTypeStat += "Paraphyletic Alleles: " + alleleStatistics.get(Phyly.para);
+            phylyStat += "Paraphyletic SNPs: " + snpStatistics.get(Phyly.para);
+        }
+        if (specifiedPhylies.contains(Phyly.poly)){
+            if (specifiedPhylies.contains(Phyly.mono) || specifiedPhylies.contains(Phyly.para)){
+                snpTypeStat += "\n";
+                phylyStat += "\n";
+            }
+            snpTypeStat += "Polyphyletic Alleles: " + alleleStatistics.get(Phyly.poly);
+            phylyStat += "Polyphyletic SNPs: " + snpStatistics.get(Phyly.poly);
+        }
+        snpTypeStat += "\n";
+        phylyStat += "\n";
         try {
             FileWriter fw = new FileWriter(filepathStat);
             BufferedWriter writer = new BufferedWriter(fw);
