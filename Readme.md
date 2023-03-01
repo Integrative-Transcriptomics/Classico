@@ -54,7 +54,7 @@ Advanced example with resolution of unresolved bases:
 
 ## Repository structure
 
-The source code and a compiled `.jar` file are in the `src` directory. The `lib` directory contains the jcommander (https://jcommander.org) framework, that was used for parsing the input parameters. In the `Analysis` directory the scripts and resulting plots of all analyses are stored. The `Data` directory contains a mini example, the validation dataset, the *Mycobacterium leprae* and *Treponema pallidum* datasets as well as the additional *Mycobacterium leprae* dataset used for runtime and memory analysis. Further, the outputs are stored in the `Data` directory.
+The source code and a compiled `.jar` file are in the `src` directory. The `lib` directory contains the jcommander framework (https://jcommander.org), that was used for parsing the input parameters. In the `Analysis` directory the scripts and resulting plots of all analyses are stored. The `Data` directory contains a mini example, the validation dataset, the *Mycobacterium leprae* and *Treponema pallidum* datasets as well as the additional *Mycobacterium leprae* dataset used for runtime and memory analysis. Further, the outputs are stored in the `Data` directory.
 
 ## References
 [1] Walter M Fitch. Toward defining the course of evolution: minimum
