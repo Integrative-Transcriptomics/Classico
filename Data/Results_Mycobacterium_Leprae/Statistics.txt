@@ -1,0 +1,6 @@
+Monophyletic SNPs: 5363
+Paraphyletic SNPs: 14135
+Polyphyletic SNPs: 16298
+Monophyletic Alleles: 2823
+Paraphyletic Alleles: 294
+Polyphyletic Alleles: 2949
