@@ -1,6 +1,6 @@
 # CLASSICO
 
-CLASSICO is a tool for propagating SNPs along a Newick tree. The tool identifies branches that lead to root nodes of monophyletic, paraphyletic and polyphyletic clades of SNPs based on the distribution of a SNP table. The algorithm first distributes the SNPs within the reconstructed clades with Fitch's algorithm [1], however, nodes that would be randomly labeled with Fitch, because there multiple bases are possible for this node, are left ambiguous. Unresolved bases are only propagated as long as all children of a node are labeled with an unresolved base. Then, the branches that lead to root nodes of monophyletic, paraphyletic and polyphyletic clades are computed and saved. Besides that, statistics of the allele count for each clade type and the SNP count of each clade type are returned. 
+CLASSICO is a tool for propagating SNPs along a Newick tree. The tool identifies branches that lead to root nodes of monophyletic, paraphyletic and polyphyletic clades of SNPs based on the distribution of a SNP table. The algorithm first distributes the SNPs within the reconstructed clades with Fitch's algorithm [1], however, nodes that would be randomly labeled with Fitch, because multiple bases are possible for this node, are left ambiguous. Unresolved bases are only propagated as long as all children of a node are labeled with an unresolved base. Then, the branches that lead to root nodes of monophyletic, paraphyletic and polyphyletic clades are computed and saved. Besides that, statistics of the allele count for each clade type and the SNP count of each clade type are returned. 
 
 Additionally, CLASSICO provides the option to resolve unresolved bases based on close nodes of the unresolved base in the phylogenetic tree, the so-called neighborhood of a node. Three different methods that define the neighborhood are implemented, i.e. the only-parent, parent-sibling and cladewise method. The methods extend the neighborhood iteratively until the depth of the neighborhood equals the specified relative maximum depth parameter. For each base a score is computed where nodes that are closer to the unresolved base are weighted more than nodes that are further apart. The base with the highest score is the resolved base for the entire clade of unresolved bases, if two or more options have the same score the base remains unresolved.
 After the resolution, CLASSICO propagates the SNPs and computes the phylogenetic clades again.
@@ -18,7 +18,7 @@ Optional:
 - relmaxdepth: relative maximum depth, value in range 0-1 (default: 0.2)
 - help: prints the help menu
 
-## Ouptut files
+## Output files
 Standard:
 - mono.txt: List of monophyletic roots
 - para.txt: List of paraphyletic roots
@@ -34,7 +34,7 @@ Additional output if resolution specified:
 - Statistics_resolved.txt: Allele and SNP statistics after resolution
 
 ## Compilation
-The .jar file was built using Java version 17.0.5. One can build the tool for other Java version using the following commands:
+The .jar file was built using Java version 17.0.5. One can build the tool for other Java versions using the following commands:
 
 `cd src`
 
@@ -58,5 +58,5 @@ The source code and a compiled `.jar` file are in the `src` directory. The `lib`
 
 ## References
 [1] Walter M Fitch. Toward defining the course of evolution: minimum
-change for a specific tree topology. Systematic Biology, 20(4):406–416,
+change for a specific tree topology. *Systematic Biology*, 20(4):406–416,
 1971.
