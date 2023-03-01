@@ -33,7 +33,7 @@ Additional output if resolution specified:
 - poly_resolved.txt: List of polyphyletic roots after resolution
 - Statistics_resolved.txt: Allele and SNP statistics after resolution
 
-## Compilation: 
+## Compilation
 The .jar file was built using Java version 17.0.5. One can build the tool for other Java version using the following commands:
 
 `cd src`
