@@ -23,7 +23,7 @@ runtime_treponema = []
 # repeat analysis
 for i in range(repetitions):
     # call new CLASSICO version with resolution flag specified
-    p = subprocess.Popen('java -jar build/classicoV2.jar  --snptable MiniExample/Treponema_snvTable_paperEvidente.tsv --nwk MiniExample/Treponema_MPTree_paperEvidente.NWK --out MiniExample/Treponema --method only-parent --relmaxdepth 0.2 --resolve', stdout=subprocess.PIPE)
+    p = subprocess.Popen('java -jar build/classicoV2.jar  --snptable Data/Treponema_snvTable_paperEvidente.tsv --nwk Data/Treponema_MPTree_paperEvidente.NWK --out Data/Output_Runtime_Memory_Analysis --method only-parent --relmaxdepth 0.2 --resolve', stdout=subprocess.PIPE)
     # parse output
     output, err = p.communicate()
     runtime_init = int(re.search('\d+', re.search('Initialization time \d+', output.decode()).group()).group())
@@ -41,7 +41,7 @@ for i in range(repetitions):
 
 runtime_lepra = []
 for i in range(repetitions):
-    p = subprocess.Popen('java -jar build/classicoV2.jar  --snptable MiniExample/Mycobacterium_leprae_SNP_schuenemann.tsv --nwk MiniExample/Mycobacterium_leprae_schuenemann.nwk --out MiniExample/Lepra --method only-parent --relmaxdepth 0.2 --resolve', stdout=subprocess.PIPE)
+    p = subprocess.Popen('java -jar build/classicoV2.jar  --snptable Data/Mycobacterium_leprae_SNP_schuenemann.tsv --nwk Data/Mycobacterium_leprae_schuenemann.nwk --out Data/Output_Runtime_Memory_Analysis --method only-parent --relmaxdepth 0.2 --resolve', stdout=subprocess.PIPE)
     output, err = p.communicate()
     runtime_init = int(re.search('\d+', re.search('Initialization time \d+', output.decode()).group()).group())
     runtime_first_clade_ident = int(re.search('\d+', re.search('Clade identification time \d+', output.decode()).group()).group())

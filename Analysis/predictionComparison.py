@@ -44,11 +44,11 @@ if single_n:
 
         # define file paths
         print('\nTreponema\n')
-        original_file = 'MiniExample/Treponema_snvTable_paperEvidente.tsv'
+        original_file = 'Data/Treponema_snvTable_paperEvidente.tsv'
         generated_file = 'Analysis/Treponema_unresolved.tsv'
         truth_file = 'Analysis/Treponema.tsv'
-        resolved_file = 'MiniExample/Treponema/Treponema_unresolved_resolved.tsv'
-        newick_file = 'MiniExample/Treponema_MPTree_paperEvidente.NWK'
+        resolved_file = 'Data/Output_Treponema/Treponema_unresolved_resolved.tsv'
+        newick_file = 'Data/Treponema_MPTree_paperEvidente.NWK'
         
         # construct file with unresolved bases and ground truth file
         subprocess.call("python Analysis/generateUnresolvedFiles.py " + original_file + " " + generated_file  + " "  + truth_file + " " + str(repetition) + " " + str(num) +  " " + newick_file + " 1")
@@ -57,7 +57,7 @@ if single_n:
         for method in methods:
             for maxDepth in maxDepths:
                 # run CLASSICO version 2
-                subprocess.call('java -jar build/classicoV2.jar --snptable ' + generated_file + ' --nwk MiniExample/Treponema_MPTree_paperEvidente.NWK --out MiniExample/Treponema --resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
+                subprocess.call('java -jar build/classicoV2.jar --snptable ' + generated_file + ' --nwk Data/Treponema_MPTree_paperEvidente.NWK --out Data/Output_Treponema --resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
                 # compare results of CLASSICO version 2 with ground truth
                 result = subprocess.run('python Analysis/evaluateResolution.py ' + truth_file + " " + resolved_file + " " + generated_file, capture_output=True)
                 # extract counts from output
@@ -124,11 +124,11 @@ if single_n:
         df_lepra_unresolved = pd.DataFrame(0.0, index=maxDepths, columns=methods)
 
         print('\nTreponema\n')
-        original_file = 'MiniExample/Mycobacterium_leprae_SNP_schuenemann.tsv'
+        original_file = 'Data/Mycobacterium_leprae_SNP_schuenemann.tsv'
         generated_file = 'Analysis/Lepra_unresolved.tsv'
         truth_file = 'Analysis/Lepra.tsv'
-        resolved_file = 'MiniExample/Lepra/Lepra_unresolved_resolved.tsv'
-        newick_file = 'MiniExample/Mycobacterium_leprae_schuenemann.nwk'
+        resolved_file = 'Data/Output_Mycobacterium_Leprae/Lepra_unresolved_resolved.tsv'
+        newick_file = 'Data/Mycobacterium_leprae_schuenemann.nwk'
         
         if int(repetition) == 10:
             repetition = 7
@@ -142,7 +142,7 @@ if single_n:
         for method in methods:
             print(method)
             for maxDepth in maxDepths:
-                subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk MiniExample/Mycobacterium_leprae_schuenemann.nwk --out MiniExample/Lepra --resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
+                subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk Data/Mycobacterium_leprae_schuenemann.nwk --out Data/Output_Mycobacterium_Leprae--resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
                 result = subprocess.run('python Analysis/evaluateResolution.py ' + truth_file + " " + resolved_file + " " + generated_file, capture_output=True)
                 print(result)
                 correct_res = int(re.search('\d+', re.search('Correct Resolution: \d+', result.stdout.decode()).group()).group())
@@ -216,11 +216,11 @@ if multi_single_n:
     
     # define file paths
     print('\nTreponema\n')
-    original_file = 'MiniExample/Treponema_snvTable_paperEvidente.tsv'
+    original_file = 'Data/Treponema_snvTable_paperEvidente.tsv'
     generated_file = 'Analysis/Treponema_unresolved.tsv'
     truth_file = 'Analysis/Treponema.tsv'
-    resolved_file = 'MiniExample/Treponema/Treponema_unresolved_resolved.tsv'
-    newick_file = 'MiniExample/Treponema_MPTree_paperEvidente.NWK'
+    resolved_file = 'Data/Output_Treponema/Treponema_unresolved_resolved.tsv'
+    newick_file = 'Data/Treponema_MPTree_paperEvidente.NWK'
     
     # iterate over different absolute clade sizes (in procent)
     for percentage in numClades:
@@ -238,7 +238,7 @@ if multi_single_n:
         for method in methods:
             
             # run CLASSICO version 2
-            subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk ' + newick_file + ' --out MiniExample/Treponema --resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
+            subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk ' + newick_file + ' --out Data/Output_Treponema --resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
             
             # run evaluation script
             result = subprocess.run('python Analysis/evaluateResolution.py ' + truth_file + " " + resolved_file + " " + generated_file, capture_output=True)
@@ -275,18 +275,18 @@ if multi_single_n:
 
     lepra_list_clade_size_count = []
 
-    original_file = 'MiniExample/Mycobacterium_leprae_SNP_schuenemann.tsv'
+    original_file = 'Data/Mycobacterium_leprae_SNP_schuenemann.tsv'
     generated_file = 'Analysis/Lepra_unresolved.tsv'
     truth_file = 'Analysis/Lepra.tsv'
-    resolved_file = 'MiniExample/Lepra/Lepra_unresolved_resolved.tsv'
-    newick_file = 'MiniExample/Mycobacterium_leprae_schuenemann.nwk'
+    resolved_file = 'Data/Output_Mycobacterium_Leprae/Lepra_unresolved_resolved.tsv'
+    newick_file = 'Data/Mycobacterium_leprae_schuenemann.nwk'
     for percentage in numClades:
         num = math.floor(percentage * 169)
         subprocess.call("python Analysis/generateUnresolvedFiles.py " + original_file + " " + generated_file  + " "  + truth_file + " " + str(repetition) + " " + str(num) + " " + newick_file + " 1")
         lepra_list_clade_size_count.append(str(round(percentage,2)) + "\n("+ str(num) + ")")
         for method in methods:
             print(method, percentage)
-            subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk '  + newick_file + ' --out MiniExample/Lepra --resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
+            subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk '  + newick_file + ' --out Data/Output_Mycobacterium_Leprae--resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
             result = subprocess.run('python Analysis/evaluateResolution.py ' + truth_file + " " + resolved_file + " " + generated_file, capture_output=True)
             print(result)
             correct_res = int(re.search('\d+', re.search('Correct Resolution: \d+', result.stdout.decode()).group()).group())
@@ -363,11 +363,11 @@ if single_multi_n:
     
     # define file paths
     print('\nTreponema\n')
-    original_file = 'MiniExample/Treponema_snvTable_paperEvidente.tsv'
+    original_file = 'Data/Treponema_snvTable_paperEvidente.tsv'
     generated_file = 'Analysis/Treponema_unresolved.tsv'
     truth_file = 'Analysis/Treponema.tsv'
-    resolved_file = 'MiniExample/Treponema/Treponema_unresolved_resolved.tsv'
-    newick_file = 'MiniExample/Treponema_MPTree_paperEvidente.NWK'
+    resolved_file = 'Data/Output_Treponema/Treponema_unresolved_resolved.tsv'
+    newick_file = 'Data/Treponema_MPTree_paperEvidente.NWK'
     
     # iterate over all clade sizes
     for percentage in cladeSize:
@@ -396,7 +396,7 @@ if single_multi_n:
         for method in methods:
             
             # run CLASSICO version 2
-            subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk ' + newick_file + ' --out MiniExample/Treponema --resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
+            subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk ' + newick_file + ' --out Data/Output_Treponema --resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
             
             # run evaluation script
             result = subprocess.run('python Analysis/evaluateResolution.py ' + truth_file + " " + resolved_file + " " + generated_file, capture_output=True)
@@ -459,11 +459,11 @@ if single_multi_n:
     lepra_list_clade_size_count = []
     lepra_clade_count = []
 
-    original_file = 'MiniExample/Mycobacterium_leprae_SNP_schuenemann.tsv'
+    original_file = 'Data/Mycobacterium_leprae_SNP_schuenemann.tsv'
     generated_file = 'Analysis/Lepra_unresolved.tsv'
     truth_file = 'Analysis/Lepra.tsv'
-    resolved_file = 'MiniExample/Lepra/Lepra_unresolved_resolved.tsv'
-    newick_file = 'MiniExample/Mycobacterium_leprae_schuenemann.nwk'
+    resolved_file = 'Data/Output_Mycobacterium_Leprae/Lepra_unresolved_resolved.tsv'
+    newick_file = 'Data/Mycobacterium_leprae_schuenemann.nwk'
     for percentage in cladeSize:
         size = math.floor(percentage * 169)
         if size <= 1:
@@ -478,7 +478,7 @@ if single_multi_n:
             lepra_clade_count.append(int(re.search('\d+', re.search('possible clades: \d+', output.decode()).group()).group()))
         for method in methods:
             print(method)
-            subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk '  + newick_file + ' --out MiniExample/Lepra --resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
+            subprocess.call('java -jar build/classicoV2.jar  --snptable ' + generated_file + ' --nwk '  + newick_file + ' --out Data/Output_Mycobacterium_Leprae--resolve --method ' + method + ' --relmaxdepth ' + str(maxDepth))
             result = subprocess.run('python Analysis/evaluateResolution.py ' + truth_file + " " + resolved_file + " " + generated_file, capture_output=True)
             print(result)
             correct_res = int(re.search('\d+', re.search('Correct Resolution: \d+', result.stdout.decode()).group()).group())

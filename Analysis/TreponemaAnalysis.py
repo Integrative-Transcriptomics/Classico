@@ -7,11 +7,11 @@ import pandas as pd
 # roots and plots them
 # =====================================================================
 
-poly = open("MiniExample/Treponema/poly.txt", "r")
+poly = open("Data/Output_Treponema/poly.txt", "r")
 
-poly_resolved = open("MiniExample/Treponema/poly_resolved.txt", "r")
+poly_resolved = open("Data/Output_Treponema/poly_resolved.txt", "r")
 
-snptable = open("MiniExample/Treponema_snvTable_paperEvidente.tsv", "r")
+snptable = open("Data/Treponema_snvTable_paperEvidente.tsv", "r")
 
 poly_lines = poly.readlines()
 
@@ -20,7 +20,7 @@ poly_resolved_lines = poly_resolved.readlines()
 snptable.readline()
 snptable_lines = snptable.readlines()
 
-distribution = open("MiniExample/Treponema/IDDistribution.txt", "r")
+distribution = open("Data/Output_Treponema/IDDistribution.txt", "r")
 lines_distribution = distribution.readlines()
 
 poly_node_count = {}
