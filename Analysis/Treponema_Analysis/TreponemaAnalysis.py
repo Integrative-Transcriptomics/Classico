@@ -74,7 +74,6 @@ y = list(poly_node_count.values())
 
 # plot top 20 nodes with the corrsponsing resolved / unresolved category
 df = pd.DataFrame(y)
-print(df)
 barlist = ax.bar(x[:20], df.iloc[:20,0], label="Resolved")
 barlist = ax.bar(x[:20], df.iloc[:20,1], bottom=df.iloc[:20,0], label="Unresolved")
 
@@ -98,6 +97,5 @@ for ticks_label in ticks_labels:
     ticks_labels[count] = ticks_label
     count += 1
 ax.set_xticks(x[:20], ticks_labels)
-fig.savefig('Analysis/TreponemaPolyCount.png', bbox_inches='tight')
+fig.savefig('Analysis/Treponema_Analysis/TreponemaPolyphylyCount.png', bbox_inches='tight')
 
-print('Poly:', poly_node_count)

@@ -59,7 +59,7 @@ for count in sample_count:
     # repeat the analysis
     for i in range(repetitions):
         # call the new CLASSICO version without assigning additional heap memory (because it already has sufficient)
-        p = subprocess.Popen('java -jar build/classicoV2.jar  --snptable Data/Runtime_memory_analysis_SNP_tables/syphilis_reduced_snp_table_' + str(count) + '_closest.tsv --nwk Data/Runtime_memory_analysis_newick_trees/' + str(count) + '_closest_UPGMA.nwk --out Data/Output_Runtime_Memory_Analysis', stdout=subprocess.PIPE)
+        p = subprocess.Popen('java -jar src/classicoV2.jar  --snptable Data/Runtime_memory_analysis_SNP_tables/syphilis_reduced_snp_table_' + str(count) + '_closest.tsv --nwk Data/Runtime_memory_analysis_newick_trees/' + str(count) + '_closest_UPGMA.nwk --out Data/Output_Runtime_Memory_Analysis', stdout=subprocess.PIPE)
         output, err = p.communicate()
         if re.search('Run time: ', output.decode()):
             # parse and save runtime

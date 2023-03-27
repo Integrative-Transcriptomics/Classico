@@ -39,7 +39,7 @@ for count in snp_count:
     count_outofmemory = 0
     
     # for each SNP position count construct SNP table with this count
-    p = subprocess.Popen('python Analysis/constructLargeSNPtable.py Data/Runtime_memory_analysis_SNP_tables/syphilis_reduced_snp_table_150_closest.tsv Data/Runtime_memory_analysis_SNP_tables/syphilis_reduced_snp_table_150_closest' + str(count) + '.tsv ' + str(count))
+    p = subprocess.Popen('python Analysis/Runtime_Analysis/constructLargeSNPtable.py Data/Runtime_memory_analysis_SNP_tables/syphilis_reduced_snp_table_150_closest.tsv Data/Runtime_memory_analysis_SNP_tables/syphilis_reduced_snp_table_150_closest' + str(count) + '.tsv ' + str(count))
     output, err = p.communicate()
     
     # repeat analysis
@@ -63,7 +63,7 @@ for count in snp_count:
     # repeat the analysis
     for i in range(repetitions):
         # call the new CLASSICO version without assigning additional heap memory (because it already has sufficient)
-        p = subprocess.Popen('java -jar build/classicoV2.jar --snptable Data/Runtime_memory_analysis_SNP_tables/syphilis_reduced_snp_table_150_closest' + str(count) + '.tsv --nwk Data/Runtime_memory_analysis_newick_trees/150_closest_UPGMA.nwk --out Data/Output_Runtime_Memory_Analysis', stdout=subprocess.PIPE)
+        p = subprocess.Popen('java -jar src/classicoV2.jar --snptable Data/Runtime_memory_analysis_SNP_tables/syphilis_reduced_snp_table_150_closest' + str(count) + '.tsv --nwk Data/Runtime_memory_analysis_newick_trees/150_closest_UPGMA.nwk --out Data/Output_Runtime_Memory_Analysis', stdout=subprocess.PIPE)
         output, err = p.communicate()
         if re.search('Run time: ', output.decode()):
             # parse and save runtime
