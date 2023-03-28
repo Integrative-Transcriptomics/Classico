@@ -14,11 +14,11 @@ The `Runtime_memory_analysis_newick_trees` and `Runtime_memeory_analysis_SNP_tab
 
 ## References
 
-[1] Marta Pla-Díaz, Leonor Sánchez-Busó, Lorenzo Giacani, David Šmajs,
+[1] Verena J Schuenemann, Charlotte Avanzi, Ben Krause-Kyora, Alexander Seitz, Alexander Herbig, Sarah Inskip, Marion Bonazzi, Ella Reiter,
+Christian Urban, Dorthe Dangvard Pedersen, et al. Ancient genomes reveal a high diversity of mycobacterium leprae in medieval europe. PLoS
+pathogens, 14(5):e1006997, 2018.
+
+[2] Marta Pla-Díaz, Leonor Sánchez-Busó, Lorenzo Giacani, David Šmajs,
 Philipp P Bosshard, Homayoun C Bagheri, Verena J Schuenemann, Kay
 Nieselt, Natasha Arora, and Fernando González-Candelas. Evolutionary
 processes in the emergence and recent spread of the syphilis agent, treponema pallidum. Molecular biology and evolution, 39(1):msab318, 2022.
-
-[2] Verena J Schuenemann, Charlotte Avanzi, Ben Krause-Kyora, Alexander Seitz, Alexander Herbig, Sarah Inskip, Marion Bonazzi, Ella Reiter,
-Christian Urban, Dorthe Dangvard Pedersen, et al. Ancient genomes reveal a high diversity of mycobacterium leprae in medieval europe. PLoS
-pathogens, 14(5):e1006997, 2018.
