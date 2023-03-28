@@ -45,11 +45,11 @@ The .jar file was built using Java version 17.0.5. One can build the tool for ot
 ## Running jar
 Simple Example:
 
-`java -jar classicoV2.jar --snptable Data/mini_snp.tsv --nwk Data/mini_nwk.nwk --out Data`
+`java -jar src/classicoV2.jar --snptable Data/mini_snp.tsv --nwk Data/mini_nwk.nwk --out Data`
 
 Advanced example with resolution of unresolved bases:
 
-`java -jar classicoV2.jar --snptable Data/mini_snp.tsv --nwk Data/mini_nwk.nwk --out Data --resolve --method cladewise --relmaxdepth 0.5`
+`java -jar src/classicoV2.jar --snptable Data/mini_snp.tsv --nwk Data/mini_nwk.nwk --out Data --resolve --method cladewise --relmaxdepth 0.5`
 
 
 ## Repository structure
