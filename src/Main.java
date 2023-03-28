@@ -351,7 +351,7 @@ public class Main {
             writer.write(snpTypeStat);
             writer.close();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
+            
             e.printStackTrace();
         }
     }
