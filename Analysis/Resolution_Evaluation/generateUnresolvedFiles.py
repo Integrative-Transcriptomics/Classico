@@ -5,15 +5,17 @@ import re
 import itertools
 
 # ===========================================================
-# this script generates an unresolved base file and corresponding
-# ground truth file which is used for the resolution evaluation
+# This script generates a SNP table containing unresolved bases and a corresponding
+# ground truth SNP table from an input SNP table for the resolution evaluation
 # ===========================================================
 
-# function that maps a line from the SNP table to a strucuture
-# in comparison to the line from a SNP table, the structure 
+# Function that maps a line from the SNP table to a strucuture:
+# In comparison to the line from a SNP table, the structure 
 # contains numbers instead of letters where each number corresponds
 # to a letter. The first letter that occurs in a line gets the number
 # 1, the second gets number 2, ...
+# Example: 
+# The line A T A G G A would get the structure 1 2 1 3 3 1.
 
 def line_to_structure(line):
     mapping = {}
@@ -28,13 +30,13 @@ def line_to_structure(line):
     return structure
 
 # read input arguments
-# 1. original SNP table path
-# 2. generated unresolved SNP table path
-# 3. generated ground truth SNP table path
+# 1. path of original SNP table
+# 2. path of generated unresolved SNP table
+# 3. path of generated ground truth SNP table
 # 4. number of repetitions for each position
 # 5. number of unresolved clades per row 
-# 6. corresponding Newick tree path
-# 7. clade size
+# 6. path of corresponding Newick tree file
+# 7. size of unresolved clades
 
 input = sys.argv
 # read SNP table
@@ -42,7 +44,7 @@ file = open(input[1], 'r')
 
 # initialize arrays that save the structures that are already seen / used in the SNP table 
 seen_structures = []
-# and the index of the first occurance of each structure
+# and the row index of the first occurance of each structure
 not_seen_ind = []
 
 # get sample names from SNP table
@@ -69,13 +71,13 @@ newick = str(open(input[6], 'r').readlines())
 # method: find small clades of size 2 and try to extend them to a specific clade size
 if clade_size > 1:
     
-    # regex to get any two leaf nodes that are siblings
+    # regex to get any two leaf nodes that are siblings (i.e. clades of size 2)
     my_regex =  "\([^():,]+:[.\d]+,[^():,]+:[.\d]+\)"
     reg = re.compile(my_regex)
     matches = reg.finditer(newick)
     clades = []
     
-    # try to extend this clade further
+    # try to extend these clades further
     for m in matches:
         left_bracket_count = 1
         right_bracket_count = 1
@@ -89,7 +91,7 @@ if clade_size > 1:
             next_left -= 1
             next_right += 1
             
-            # find position of opening bracket that belongs to parent of current clade
+            # find position of opening bracket that belongs to parent of current clades root
             while(not(newick[next_left] == '(' and left_bracket_count == right_bracket_count)):                                
                 if newick[next_left] == ')':
                     right_bracket_count += 1
@@ -98,7 +100,7 @@ if clade_size > 1:
                 next_left -= 1
             left_bracket_count += 1
             
-            # find position of closing bracket that belongs to parent of current clade
+            # find position of closing bracket that belongs to parent of current clades root
             while(not(newick[next_right] == ')' and right_bracket_count + 1 == left_bracket_count)):                                
                 if newick[next_right] == ')':
                     right_bracket_count += 1
@@ -127,7 +129,7 @@ for line in file.readlines():
         if split == 'N':
             count += 1
     
-    # only lines without N's are used
+    # only lines without any N's are used
     if count == 0:
         
         # only consider SNP structure which are not already used
@@ -185,7 +187,7 @@ for line in file.readlines():
                         splits[randInt] = previouses[randInt]
                     count_N += 1
             
-            # 2nd case: clades should be replaced with unresolved bases
+            # 2nd case: entire clades should be replaced with unresolved bases
             else:
                 if len(clades) > 0:
                     
@@ -223,7 +225,7 @@ for line in file.readlines():
                     # write new line to unresolved file
                     new_unresolved.write(newline)
                     
-                    # reset replaced bases with saved resolved bases before replacement                    
+                    # reset replaced bases with saved resolved bases before replacement
                     for ind in list_indices:
                         splits[ind] = previouses[ind]
                 else:
