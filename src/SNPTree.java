@@ -64,7 +64,7 @@ public class SNPTree{
             // execute update leafs method for each node in tree in post order traversal
             postOrderTraversal(updateLeafsMethod, this.root, args);
         } catch (NoSuchMethodException | SecurityException e) {
-            // TODO Auto-generated catch block
+            
             e.printStackTrace();
         }
 
@@ -187,7 +187,7 @@ public class SNPTree{
             // execute forwardPass for each node in tree in post order traversal
             postOrderTraversal(forwardPassMethod, this.root, args);
         } catch (NoSuchMethodException | SecurityException e) {
-            // TODO Auto-generated catch block
+            
             e.printStackTrace();
         }
         // define parameters for backwardPass method
@@ -202,7 +202,7 @@ public class SNPTree{
             // execute addSNPs for each node in tree in post order
             preOrderTraversal(backwardPassMethod, this.root, args);
         } catch (NoSuchMethodException | SecurityException e) {
-            // TODO Auto-generated catch block
+            
             e.printStackTrace();
         }       
 
@@ -228,7 +228,7 @@ public class SNPTree{
         try {
             method.invoke(node, args);            
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            // TODO Auto-generated catch block
+            
             e.printStackTrace();
         }
     }
@@ -245,7 +245,7 @@ public class SNPTree{
         try {
             method.invoke(node, args);            
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            // TODO Auto-generated catch block
+            
             e.printStackTrace();
         }
         // pre order traversal is only used for backward pass
@@ -350,7 +350,7 @@ public class SNPTree{
                 postOrderTraversal(writeNodeToIDDistributionFile, this.root, args);
                 writerIDDistribution.close();
             } catch (NoSuchMethodException | SecurityException e) {
-                // TODO Auto-generated catch block
+                
                 e.printStackTrace();
             }
         } catch (IOException e) {
