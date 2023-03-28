@@ -85,4 +85,4 @@ labels = df_merge.index
 labels = ['\n'.join(wrap(x, 15)) for x in  labels]
 ax.set_xticklabels(labels)
 
-fig.savefig("Analysis/RuntimeAnalysisSteps.png", bbox_inches='tight')
+fig.savefig("Analysis/Runtime_Analysis/RuntimeAnalysisSteps.png", bbox_inches='tight')

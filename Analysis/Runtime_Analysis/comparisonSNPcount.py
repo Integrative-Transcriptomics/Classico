@@ -107,7 +107,7 @@ ax.plot(x_fit, y_new, label = str('y = ' + str(round(fit_new[0],2)) + "x + " + s
 ax.legend()
 ax.set_xlabel('SNP position count')
 ax.set_ylabel('Runtime in ms')
-fig.savefig('Analysis/runtime_snpPositionCount.png', bbox_inches='tight')
+fig.savefig('Analysis/Runtime_Analysis/runtime_snpPositionCount.png', bbox_inches='tight')
 
 # repeat same for memory
 
@@ -129,4 +129,4 @@ ax.plot(x_fit, y_new, label = str('y = ' + str(round(fit_new[0],2)) + "x + " + s
 ax.legend()
 ax.set_xlabel('SNP position count')
 ax.set_ylabel('Memory Usage in MB')
-fig.savefig('Analysis/memory_snpPositionCount.png', bbox_inches='tight')
+fig.savefig('Analysis/Runtime_Analysis/memory_snpPositionCount.png', bbox_inches='tight')
