@@ -41,6 +41,8 @@ The .jar file was built using Java version 17.0.5. One can build the tool for ot
 `javac -cp ../lib/jcommander-1.82.jar *.java`
 
 `jar cvfm classicoV2.jar META-INF/MANIFEST.MF *`
+- Note: The compiled version requires the library jcommander to be found in the expected directory (../lib/).
+
 
 ## Running jar
 Simple Example:
@@ -50,6 +52,7 @@ Simple Example:
 Advanced example with resolution of unresolved bases:
 
 `java -jar src/classicoV2.jar --snptable Data/mini_snp.tsv --nwk Data/mini_nwk.nwk --out Data --resolve --method cladewise --relmaxdepth 0.5`
+
 
 
 ## Repository structure
