@@ -1,4 +1,5 @@
 Manifest-Version: 1.0
 Created-By: 11.0.2 (Oracle Corporation)
-Main-Class: project.Main
+Main-Class: Main
+Class-Path: ../lib/jcommander-1.82.jar
 
